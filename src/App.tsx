@@ -4,7 +4,7 @@ import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./da
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
-import { distanceMiles, lngLatFromFeature, nearestFeature } from "./lib/geo";
+import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
 import type { CategoryKey, Constraint, LngLat, PointFeature } from "./lib/types";
@@ -54,6 +54,19 @@ function lineOptions(): string[] {
     }
   }
   return [...lines].sort((a, b) => a.localeCompare(b));
+}
+
+function geolocationErrorMessage(error: GeolocationPositionError): string {
+  if (error.code === error.PERMISSION_DENIED) {
+    return "Location permission is blocked. Enable location for this localhost page in your browser settings.";
+  }
+  if (error.code === error.POSITION_UNAVAILABLE) {
+    return "The browser could not determine your location. Try again or tap the map to set it manually.";
+  }
+  if (error.code === error.TIMEOUT) {
+    return "Location lookup timed out. Try again or tap the map to set it manually.";
+  }
+  return error.message || "Location lookup failed.";
 }
 
 type AnswerOption = {
@@ -472,23 +485,66 @@ export function App() {
       setLocationStatus("Location is not available in this browser.");
       return;
     }
+    if (!window.isSecureContext) {
+      setLocationStatus("Location requires HTTPS or localhost. Open http://127.0.0.1:5173 or http://localhost:5173.");
+      return;
+    }
+
+    const applyPosition = (position: GeolocationPosition) => {
+      const nextPoint = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      const inPlayableArea = Boolean(pointInFeatureCollection(nextPoint, snapshot.geometries.playableArea));
+      setDraftPointPreview(null);
+      setThermoFromPreview(null);
+      setThermoToPreview(null);
+      setSelectedPoint(nextPoint);
+      if (questionKind === "thermometer") setThermoTo(nextPoint);
+      const accuracy = Number.isFinite(position.coords.accuracy)
+        ? `accuracy ${Math.round(position.coords.accuracy)} m`
+        : "accuracy unknown";
+      setLocationStatus(
+        inPlayableArea
+          ? `Current location set · ${accuracy}`
+          : `Current location set, but it is outside the SF map · ${accuracy}`,
+      );
+    };
+
+    const requestPosition = (highAccuracy: boolean) => {
+      navigator.geolocation.getCurrentPosition(
+        applyPosition,
+        (error) => {
+          if (highAccuracy && (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE)) {
+            setLocationStatus("Still looking; trying a lower-accuracy location fix...");
+            requestPosition(false);
+            return;
+          }
+          setLocationStatus(geolocationErrorMessage(error));
+        },
+        {
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 12000 : 20000,
+          maximumAge: highAccuracy ? 10000 : 300000,
+        },
+      );
+    };
+
     setLocationStatus("Finding current location...");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const nextPoint = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        setDraftPointPreview(null);
-        setThermoFromPreview(null);
-        setThermoToPreview(null);
-        setSelectedPoint(nextPoint);
-        if (questionKind === "thermometer") setThermoTo(nextPoint);
-        setLocationStatus(`Accuracy ${Math.round(position.coords.accuracy)} m`);
-      },
-      (error) => setLocationStatus(error.message),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 },
-    );
+    if (navigator.permissions?.query) {
+      void navigator.permissions
+        .query({ name: "geolocation" as PermissionName })
+        .then((permission) => {
+          if (permission.state === "denied") {
+            setLocationStatus("Location permission is blocked. Enable it for this localhost page, then try again.");
+            return;
+          }
+          requestPosition(true);
+        })
+        .catch(() => requestPosition(true));
+      return;
+    }
+    requestPosition(true);
   }
 
   const handleMapPointSelect = useCallback((point: LngLat) => {
@@ -547,6 +603,7 @@ export function App() {
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
           constraints={appliedMapConstraints}
+          currentPoint={mode === "hider" ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
           answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
           onSelectPoint={handleMapPointSelect}

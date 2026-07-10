@@ -9,6 +9,7 @@ type MapViewProps = {
   candidates: CandidateStation[];
   eliminated: CandidateStation[];
   constraints: Constraint[];
+  currentPoint?: LngLat;
   draftConstraint?: Constraint;
   answerPreviewOverlays?: ConstraintOverlay[];
   onSelectPoint: (point: LngLat) => void;
@@ -69,6 +70,15 @@ function handleIcon(label: string, color: string): L.DivIcon {
     html: `<div class="drag-handle${dotClass}" style="--handle-color: ${color}">${content}</div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 14],
+  });
+}
+
+function hiderIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div class="hider-location-marker"><span>H</span></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 }
 
@@ -214,6 +224,7 @@ export function MapView({
   candidates,
   eliminated,
   constraints,
+  currentPoint,
   draftConstraint,
   answerPreviewOverlays = [],
   onSelectPoint,
@@ -229,7 +240,9 @@ export function MapView({
   const appliedConstraintRef = useRef<L.LayerGroup | null>(null);
   const draftConstraintRef = useRef<L.LayerGroup | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
+  const panBoundsRef = useRef<L.LatLngBounds | null>(null);
   const draftPointMarkerRef = useRef<L.Marker | null>(null);
+  const currentPointMarkerRef = useRef<L.Marker | null>(null);
   const thermoFromMarkerRef = useRef<L.Marker | null>(null);
   const thermoToMarkerRef = useRef<L.Marker | null>(null);
   const onSelectPointRef = useRef(onSelectPoint);
@@ -266,6 +279,7 @@ export function MapView({
     const gameBounds = playableLayer.getBounds();
     const viewBounds = gameBounds.pad(0.04);
     const panBounds = gameBounds.pad(0.18);
+    panBoundsRef.current = panBounds;
     map.fitBounds(viewBounds, { animate: false, padding: [12, 12] });
     map.setMaxBounds(panBounds);
     clampMapMinZoom(map, viewBounds);
@@ -308,6 +322,31 @@ export function MapView({
       }
     }
   }, [constraints]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!currentPoint) {
+      currentPointMarkerRef.current?.remove();
+      currentPointMarkerRef.current = null;
+      return;
+    }
+
+    const latLng: L.LatLngExpression = [currentPoint.lat, currentPoint.lng];
+    if (!currentPointMarkerRef.current) {
+      currentPointMarkerRef.current = L.marker(latLng, {
+        icon: hiderIcon(),
+        interactive: false,
+        zIndexOffset: 1300,
+      }).addTo(map);
+    }
+    currentPointMarkerRef.current.setLatLng(latLng);
+
+    const panBounds = panBoundsRef.current;
+    if (panBounds?.contains(latLng) && !map.getBounds().pad(-0.2).contains(latLng)) {
+      map.panTo(latLng, { animate: true });
+    }
+  }, [currentPoint]);
 
   useEffect(() => {
     const group = draftConstraintRef.current;
