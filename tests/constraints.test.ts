@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
+import { buildSurvivalGrid } from "../src/lib/survivalGrid";
 import type { CandidateStation, Constraint, LngLat } from "../src/lib/types";
 
 function station(name: string): CandidateStation {
@@ -64,6 +65,21 @@ describe("constraint engine", () => {
     const first = applyConstraints([a, b]).map((candidate) => candidate.properties.id).sort();
     const second = applyConstraints([b, a]).map((candidate) => candidate.properties.id).sort();
     expect(first).toEqual(second);
+  });
+
+  it("builds a drawable possible-region grid for active constraints", () => {
+    const constraint: Constraint = {
+      id: "grid-radius",
+      kind: "radius",
+      label: "Radius",
+      point: vanNessMarket,
+      miles: 1,
+      answer: "inside",
+      enabled: true,
+    };
+    const grid = buildSurvivalGrid([constraint]);
+    expect(grid.features.length).toBeGreaterThan(0);
+    expect(grid.features.every((feature) => feature.geometry.type === "Polygon")).toBe(true);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

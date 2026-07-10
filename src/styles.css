@@ -17,7 +17,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -122,6 +123,28 @@ h2 {
   font-size: 0.9rem;
 }
 
+.point-strip span {
+  flex: 1;
+}
+
+.icon-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-line {
+  margin: -4px 4px 0;
+  color: #65736f;
+  font-size: 0.85rem;
+}
+
 .panel-stack {
   display: grid;
   gap: 12px;
@@ -151,7 +174,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 42px;
   padding: 8px 10px;
@@ -161,12 +185,34 @@ select {
   color: #101820;
 }
 
+textarea {
+  resize: vertical;
+  line-height: 1.35;
+}
+
 .primary-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.question-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.question-preview button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 86px;
   border-radius: 8px;
   font-weight: 800;
 }
@@ -282,5 +328,13 @@ select {
 
   .mode-tabs button {
     flex: 1;
+  }
+
+  .question-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .question-preview button {
+    width: 100%;
   }
 }

@@ -1,9 +1,11 @@
-import { Eye, EyeOff, ListChecks, MapPin, RotateCcw, Trash2 } from "lucide-react";
+import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { CATEGORY_LABELS, DISABLED_RULE_NOTES, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
-import { applyConstraints, canonicalAnswers, describeConstraint } from "./lib/constraints";
+import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
+import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { distanceMiles, lngLatFromFeature, nearestFeature } from "./lib/geo";
+import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
+import { buildSurvivalGrid } from "./lib/survivalGrid";
 import type { CategoryKey, Constraint, LngLat, PointFeature } from "./lib/types";
 import { MapView } from "./components/MapView";
 
@@ -71,18 +73,34 @@ export function App() {
   const [selectedPoiId, setSelectedPoiId] = useState("");
   const [transitLine, setTransitLine] = useState("N");
   const [dataCategory, setDataCategory] = useState<CategoryKey>("museums");
+  const [locationStatus, setLocationStatus] = useState("");
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
   }, [constraints]);
 
   const candidates = useMemo(() => applyConstraints(constraints), [constraints]);
+  const possibleRegion = useMemo(() => buildSurvivalGrid(constraints), [constraints]);
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
   const nearestPoi = nearestFeature(selectedPoint, categoryFeatures);
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
   const lines = useMemo(lineOptions, []);
+  const questionDraft = useMemo(
+    () =>
+      formatQuestionDraft({
+        kind: questionKind,
+        point: selectedPoint,
+        category,
+        radiusMiles,
+        tentacleRadius,
+        transitLine,
+        from: thermoFrom,
+        to: thermoTo,
+      }),
+    [category, questionKind, radiusMiles, selectedPoint, tentacleRadius, thermoFrom, thermoTo, transitLine],
+  );
 
   useEffect(() => {
     const nearest = nearestFeature(selectedPoint, categoryFeatures);
@@ -137,6 +155,29 @@ export function App() {
     void navigator.clipboard?.writeText(`${location.origin}${location.pathname}#state=${encoded}`);
   }
 
+  function copyQuestion() {
+    void navigator.clipboard?.writeText(questionDraft);
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationStatus("Location is not available in this browser.");
+      return;
+    }
+    setLocationStatus("Finding current location...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSelectedPoint({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationStatus(`Accuracy ${Math.round(position.coords.accuracy)} m`);
+      },
+      (error) => setLocationStatus(error.message),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 },
+    );
+  }
+
   useEffect(() => {
     const state = new URLSearchParams(location.hash.replace(/^#/, "")).get("state");
     if (!state) return;
@@ -154,6 +195,7 @@ export function App() {
         <MapView
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
+          possibleRegion={possibleRegion}
           selectedPoint={selectedPoint}
           onSelectPoint={setSelectedPoint}
         />
@@ -182,7 +224,12 @@ export function App() {
         <div className="point-strip">
           <MapPin size={18} />
           <span>Map tap: {pointLabel(selectedPoint)}</span>
+          <button type="button" className="icon-text-button" onClick={useCurrentLocation}>
+            <Crosshair size={17} />
+            Current
+          </button>
         </div>
+        {locationStatus && <p className="status-line">{locationStatus}</p>}
 
         {mode === "seeker" && (
           <div className="panel-stack">
@@ -292,6 +339,17 @@ export function App() {
                 )}
               </div>
 
+              <div className="question-preview">
+                <label>
+                  Copyable question
+                  <textarea readOnly value={questionDraft} rows={4} />
+                </label>
+                <button type="button" onClick={copyQuestion}>
+                  <Clipboard size={17} />
+                  Copy
+                </button>
+              </div>
+
               <button className="primary-action" type="button" onClick={addConstraint}>
                 <ListChecks size={18} />
                 Apply answer
@@ -317,7 +375,7 @@ export function App() {
                     <button type="button" title="Toggle question" onClick={() => toggleConstraint(constraint.id)}>
                       {constraint.enabled ? <Eye size={17} /> : <EyeOff size={17} />}
                     </button>
-                    <span>{describeConstraint(constraint)}</span>
+                    <span>{formatAppliedQuestion(constraint)}</span>
                     <button type="button" title="Remove question" onClick={() => removeConstraint(constraint.id)}>
                       <Trash2 size={17} />
                     </button>
@@ -363,14 +421,7 @@ export function App() {
               <AnswerRow label="Rules" value={snapshot.rulesVersion} />
               <AnswerRow label="Valid stations" value={`${validStations.length}`} />
               <AnswerRow label="Active constraints" value={`${enabledConstraints.length}`} />
-            </div>
-            <div className="warning-box">
-              {snapshot.warnings.map((warning) => (
-                <p key={warning}>{warning}</p>
-              ))}
-              {DISABLED_RULE_NOTES.map((note) => (
-                <p key={note}>{note}</p>
-              ))}
+              <AnswerRow label="Snapshot date" value={snapshot.generatedAt.slice(0, 10)} />
             </div>
             <label>
               Browse category

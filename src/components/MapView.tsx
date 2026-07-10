@@ -7,13 +7,15 @@ import type { CandidateStation, LngLat } from "../lib/types";
 type MapViewProps = {
   candidates: CandidateStation[];
   eliminated: CandidateStation[];
+  possibleRegion: GeoJSON.FeatureCollection;
   selectedPoint: LngLat;
   onSelectPoint: (point: LngLat) => void;
 };
 
-export function MapView({ candidates, eliminated, selectedPoint, onSelectPoint }: MapViewProps) {
+export function MapView({ candidates, eliminated, possibleRegion, selectedPoint, onSelectPoint }: MapViewProps) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const regionRef = useRef<L.GeoJSON | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
@@ -38,11 +40,29 @@ export function MapView({ candidates, eliminated, selectedPoint, onSelectPoint }
         fillOpacity: 0.08,
       },
     }).addTo(map);
+    regionRef.current = L.geoJSON(undefined, {
+      interactive: false,
+      style: {
+        color: "#0f766e",
+        weight: 0,
+        fillColor: "#14b8a6",
+        fillOpacity: 0.28,
+      },
+    }).addTo(map);
     const layers = L.layerGroup().addTo(map);
     layersRef.current = layers;
     map.on("click", (event) => onSelectPoint({ lat: event.latlng.lat, lng: event.latlng.lng }));
     mapRef.current = map;
   }, [onSelectPoint]);
+
+  useEffect(() => {
+    const region = regionRef.current;
+    if (!region) return;
+    region.clearLayers();
+    if (possibleRegion.features.length > 0) {
+      region.addData(possibleRegion);
+    }
+  }, [possibleRegion]);
 
   useEffect(() => {
     const layers = layersRef.current;

@@ -41,7 +41,7 @@ function districtAt(point: LngLat): string | undefined {
   return district ? String(district) : undefined;
 }
 
-function transitLineStopsInStationZone(station: CandidateStation, line: string): boolean {
+export function transitLineStopsInStationZone(station: CandidateStation, line: string): boolean {
   const normalized = line.trim().toLowerCase();
   if (!normalized) return false;
   if (stationLines(station).some((candidate) => candidate.toLowerCase() === normalized)) {
@@ -112,6 +112,75 @@ export function stationSurvivesConstraint(station: CandidateStation, constraint:
       return constraint.answer === "yes" ? result : !result;
     }
   }
+}
+
+export function pointSatisfiesConstraint(point: LngLat, constraint: Constraint): boolean {
+  if (!constraint.enabled) return true;
+
+  switch (constraint.kind) {
+    case "radius": {
+      const d = distanceMiles(point, constraint.point);
+      return constraint.answer === "inside" ? d <= constraint.miles : d >= constraint.miles;
+    }
+    case "thermometer": {
+      const from = distanceMiles(point, constraint.from);
+      const to = distanceMiles(point, constraint.to);
+      if (constraint.answer === "same") return Math.abs(from - to) <= 0.02;
+      return constraint.answer === "warmer" ? to <= from : to >= from;
+    }
+    case "matching": {
+      const features = getCategoryFeatures(constraint.category);
+      const seekerNearest = nearestFeature(constraint.point, features);
+      const hiderNearest = nearestFeature(point, features);
+      if (!seekerNearest || !hiderNearest) return true;
+      const same = seekerNearest.properties.id === hiderNearest.properties.id;
+      return constraint.answer === "yes" ? same : !same;
+    }
+    case "measuring": {
+      const features = getCategoryFeatures(constraint.category);
+      const reference = nearestFeatureWithDistance(constraint.point, features);
+      const hider = nearestFeatureWithDistance(point, features);
+      if (!reference || !hider) return true;
+      return constraint.answer === "closer" ? hider.miles <= reference.miles : hider.miles >= reference.miles;
+    }
+    case "tentacles": {
+      const features = getCategoryFeatures(constraint.category);
+      const target = features.find((feature) => feature.properties.id === constraint.selectedPoiId);
+      const hiderNearest = nearestFeature(point, features);
+      if (!target || !hiderNearest) return true;
+      return (
+        distanceToFeatureMiles(constraint.point, target) <= constraint.radiusMiles &&
+        hiderNearest.properties.id === target.properties.id
+      );
+    }
+    case "district": {
+      const seekerDistrict = districtAt(constraint.point);
+      const hiderDistrict = districtAt(point);
+      if (!seekerDistrict || !hiderDistrict) return true;
+      const same = seekerDistrict === hiderDistrict;
+      return constraint.answer === "yes" ? same : !same;
+    }
+    case "station-name-length": {
+      const seekerStation = nearestFeature(constraint.point, validStations);
+      const hiderStation = nearestFeature(point, validStations);
+      if (!seekerStation || !hiderStation) return true;
+      const same = seekerStation.properties.name.length === hiderStation.properties.name.length;
+      return constraint.answer === "yes" ? same : !same;
+    }
+    case "transit-line": {
+      const possibleStations = validStations.filter(
+        (station) => distanceMiles(point, stationCenter(station)) <= hideRadius(),
+      );
+      if (possibleStations.length === 0) return false;
+      const yesPossible = possibleStations.some((station) => transitLineStopsInStationZone(station, constraint.line));
+      const noPossible = possibleStations.some((station) => !transitLineStopsInStationZone(station, constraint.line));
+      return constraint.answer === "yes" ? yesPossible : noPossible;
+    }
+  }
+}
+
+export function pointSatisfiesConstraints(point: LngLat, constraints: Constraint[]): boolean {
+  return constraints.every((constraint) => pointSatisfiesConstraint(point, constraint));
 }
 
 export function applyConstraints(constraints: Constraint[], stations: CandidateStation[] = validStations): CandidateStation[] {

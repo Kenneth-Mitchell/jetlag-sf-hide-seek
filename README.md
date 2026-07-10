@@ -18,6 +18,9 @@ Implemented:
   - `https://data.sfgov.org/resource/f2zs-jevy.geojson`
   - `https://data.sfgov.org/resource/hcgx-vtsb.geojson`
 - Seeker constraints for radius, thermometer, nearest-POI matching, measuring, tentacles, supervisorial district, station-name length, and an experimental valid-station based transit-line check.
+- Point-feasible geometry overlay on the map after applying questions, alongside in/out candidate station zones.
+- One-tap current-location reference point using the browser geolocation API.
+- Copyable plain-English question text in the seeker flow.
 - Hider mode canonical nearest answers from the same frozen snapshot.
 - Local persistence and copyable state links.
 - PWA manifest and service worker for app shell caching.
@@ -26,7 +29,7 @@ Not yet complete enough for a tournament game:
 
 - Street/path, coastline, sea-level, body-of-water, and park polygon measuring need additional frozen geometry layers.
 - Transit Line currently uses line metadata on valid stations, not complete per-route stop lists from SFMTA.
-- Station hiding zones are displayed as ¼-mile circles and filtered conservatively; clipping against the playable area is shown as boundary context but not yet persisted as clipped zone polygons.
+- Station hiding zones are displayed as ¼-mile circles and filtered conservatively; the shaded possible-region overlay is sampled for map readability, while clipping against the playable area is shown as boundary context but not yet persisted as clipped zone polygons.
 - Basemap tiles come from OpenStreetMap at runtime and are cached opportunistically after viewing; fully bundled offline tiles are not included yet.
 - No hosted deployment URL is recorded yet.
 
