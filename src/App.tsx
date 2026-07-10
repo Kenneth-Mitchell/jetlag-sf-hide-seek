@@ -16,6 +16,7 @@ type Mode = "seeker" | "hider" | "data";
 type QuestionKind = Constraint["kind"];
 
 const STORAGE_KEY = "jetlag-sf-constraints-v1";
+const COMPACT_VORONOI_ANSWER_LIMIT = 6;
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
   { value: "radius", label: "Radar / radius" },
@@ -63,6 +64,7 @@ type AnswerOption = {
   color?: string;
   selected?: boolean;
   value?: string;
+  distanceMiles?: number;
 };
 
 export function App() {
@@ -88,6 +90,7 @@ export function App() {
   const [draftPointPreview, setDraftPointPreview] = useState<LngLat | null>(null);
   const [thermoFromPreview, setThermoFromPreview] = useState<LngLat | null>(null);
   const [thermoToPreview, setThermoToPreview] = useState<LngLat | null>(null);
+  const [showAllAnswers, setShowAllAnswers] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -307,12 +310,15 @@ export function App() {
       ];
     }
     if (questionKind === "matching") {
-      return matchingAnswerLegend.map(({ color, feature, miles, selected }) => ({
-        label: String(feature.properties.name),
-        detail: selected ? `${miles.toFixed(2)} mi · my nearest` : `${miles.toFixed(2)} mi`,
-        color,
-        selected,
-      }));
+      return [...matchingAnswerLegend]
+        .sort((a, b) => Number(b.selected) - Number(a.selected) || a.miles - b.miles)
+        .map(({ color, feature, miles, selected }) => ({
+          label: String(feature.properties.name),
+          detail: selected ? `${miles.toFixed(2)} mi · my nearest` : `${miles.toFixed(2)} mi`,
+          color,
+          selected,
+          distanceMiles: miles,
+        }));
     }
     if (questionKind === "measuring") {
       const nearest = nearestPoi;
@@ -333,6 +339,7 @@ export function App() {
         color,
         selected,
         value: feature.properties.id,
+        distanceMiles: miles,
       }));
     }
     if (questionKind === "district") {
@@ -354,6 +361,22 @@ export function App() {
       { label: "No", detail: `${transitLine || "line"} has no stop within 1/4 mi of the chosen station` },
     ];
   }, [category, districtAnswerLegend, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine, transitStopCount]);
+  const compactVoronoiAnswers = questionKind === "matching" || questionKind === "tentacles";
+  const shouldCompactAnswers = compactVoronoiAnswers && answerOptions.length > COMPACT_VORONOI_ANSWER_LIMIT;
+  const visibleAnswerOptions = useMemo(() => {
+    if (!shouldCompactAnswers || showAllAnswers) return answerOptions;
+    const selected = answerOptions.filter((option) => option.selected);
+    const selectedKeys = new Set(selected.map((option) => `${option.label}-${option.detail ?? ""}`));
+    const nearby = answerOptions
+      .filter((option) => !selectedKeys.has(`${option.label}-${option.detail ?? ""}`))
+      .slice(0, Math.max(0, COMPACT_VORONOI_ANSWER_LIMIT - selected.length));
+    return [...selected, ...nearby];
+  }, [answerOptions, shouldCompactAnswers, showAllAnswers]);
+  const hiddenAnswerCount = answerOptions.length - visibleAnswerOptions.length;
+
+  useEffect(() => {
+    setShowAllAnswers(false);
+  }, [category, questionKind, radiusMiles, selectedPoint, tentacleRadius]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
@@ -844,8 +867,20 @@ export function App() {
                   <h2>Possible Answers</h2>
                   <span>{answerOptions.length}</span>
                 </div>
+                {shouldCompactAnswers && (
+                  <div className="answer-list-tools">
+                    <span>
+                      {showAllAnswers
+                        ? `${answerOptions.length} shown`
+                        : `${visibleAnswerOptions.length} shown · ${hiddenAnswerCount} hidden`}
+                    </span>
+                    <button type="button" onClick={() => setShowAllAnswers((current) => !current)}>
+                      {showAllAnswers ? "Show fewer" : "Show all"}
+                    </button>
+                  </div>
+                )}
                 <div className="answer-chip-list">
-                  {answerOptions.map((option) => {
+                  {visibleAnswerOptions.map((option, index) => {
                     const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
                     const chipClassName = `answer-chip${option.selected ? " selected-answer" : ""}`;
                     const content = (
@@ -857,7 +892,7 @@ export function App() {
                     );
                     return option.value ? (
                       <button
-                        key={`${option.label}-${option.detail}`}
+                        key={`${option.label}-${option.detail}-${index}`}
                         type="button"
                         className={chipClassName}
                         style={chipStyle}
@@ -866,7 +901,7 @@ export function App() {
                         {content}
                       </button>
                     ) : (
-                      <span key={`${option.label}-${option.detail}`} className={chipClassName} style={chipStyle}>
+                      <span key={`${option.label}-${option.detail}-${index}`} className={chipClassName} style={chipStyle}>
                         {content}
                       </span>
                     );

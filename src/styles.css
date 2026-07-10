@@ -311,6 +311,26 @@ textarea {
   gap: 7px;
 }
 
+.answer-list-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+  color: #65736f;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.answer-list-tools button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  color: #101820;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .answer-chip {
   display: inline-flex;
   align-items: baseline;
