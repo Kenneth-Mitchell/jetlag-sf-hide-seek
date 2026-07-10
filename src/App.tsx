@@ -125,6 +125,7 @@ export function App() {
   const [yesNoAnswer, setYesNoAnswer] = useState<"yes" | "no">("yes");
   const [thermoFrom, setThermoFrom] = useState<LngLat>({ lat: 37.776, lng: -122.45 });
   const [thermoTo, setThermoTo] = useState<LngLat>(vanNessMarket);
+  const [thermoTapTarget, setThermoTapTarget] = useState<"A" | "B">("B");
   const [thermoAnswer, setThermoAnswer] = useState<"warmer" | "colder" | "same">("warmer");
   const [tentacleRadius, setTentacleRadius] = useState(1.5);
   const [selectedPoiId, setSelectedPoiId] = useState("");
@@ -180,7 +181,8 @@ export function App() {
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
   const liveThermoFrom = thermoFromPreview ?? thermoFrom;
   const liveThermoTo = thermoToPreview ?? thermoTo;
-  const liveSelectedPoint = draftPointPreview ?? (questionKind === "thermometer" ? liveThermoTo : selectedPoint);
+  const liveThermoTapPoint = thermoTapTarget === "A" ? liveThermoFrom : liveThermoTo;
+  const liveSelectedPoint = draftPointPreview ?? (questionKind === "thermometer" ? liveThermoTapPoint : selectedPoint);
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
   const nearestPoi = nearestFeature(liveSelectedPoint, categoryFeatures);
@@ -614,6 +616,7 @@ export function App() {
     } else if (constraint.kind === "thermometer") {
       setThermoFrom(constraint.from);
       setThermoTo(constraint.to);
+      setThermoTapTarget("B");
       setThermoAnswer(constraint.answer);
     } else if (constraint.kind === "matching") {
       setCategory(constraint.category);
@@ -643,6 +646,7 @@ export function App() {
     }
     if (nextKind === "thermometer" && questionKind !== "thermometer") {
       setThermoTo(selectedPoint);
+      setThermoTapTarget("B");
     }
     if (nextKind !== "thermometer" && questionKind === "thermometer") {
       setSelectedPoint(thermoTo);
@@ -750,7 +754,10 @@ export function App() {
       setThermoFromPreview(null);
       setThermoToPreview(null);
       setSelectedPoint(nextPoint);
-      if (questionKind === "thermometer") setThermoTo(nextPoint);
+      if (questionKind === "thermometer") {
+        if (thermoTapTarget === "A") setThermoFrom(nextPoint);
+        else setThermoTo(nextPoint);
+      }
       const accuracy = Number.isFinite(position.coords.accuracy)
         ? `accuracy ${Math.round(position.coords.accuracy)} m`
         : "accuracy unknown";
@@ -802,8 +809,11 @@ export function App() {
     setThermoFromPreview(null);
     setThermoToPreview(null);
     setSelectedPoint(point);
-    if (questionKind === "thermometer") setThermoTo(point);
-  }, [questionKind]);
+    if (questionKind === "thermometer") {
+      if (thermoTapTarget === "A") setThermoFrom(point);
+      else setThermoTo(point);
+    }
+  }, [questionKind, thermoTapTarget]);
 
   const previewDraftPoint = useCallback((point: LngLat | null) => {
     setDraftPointPreview(point);
@@ -1001,13 +1011,9 @@ export function App() {
 
                 {questionKind === "thermometer" && (
                   <>
-                    <div className="button-row">
-                      <button type="button" onClick={() => setThermoFrom(selectedPoint)}>
-                        Set A
-                      </button>
-                      <button type="button" onClick={() => setThermoTo(selectedPoint)}>
-                        Set B
-                      </button>
+                    <div className="thermo-target-field">
+                      <span>Map tap target</span>
+                      <Segmented value={thermoTapTarget} onChange={setThermoTapTarget} options={["A", "B"]} />
                     </div>
                     <p className="mini-copy">A {pointLabel(liveThermoFrom)} · B {pointLabel(liveThermoTo)}</p>
                     <Segmented value={thermoAnswer} onChange={setThermoAnswer} options={["warmer", "colder", "same"]} />
