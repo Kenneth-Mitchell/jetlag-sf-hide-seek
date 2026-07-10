@@ -55,6 +55,7 @@ button:disabled {
 
 .map-pane {
   position: relative;
+  z-index: 1;
   min-height: 42vh;
 }
 
@@ -72,6 +73,10 @@ button:disabled {
   display: grid;
   justify-items: end;
   gap: 6px;
+}
+
+.map-focus-button {
+  display: none;
 }
 
 .map-layer-button {
@@ -208,6 +213,8 @@ button:disabled {
 }
 
 .control-pane {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -785,22 +792,73 @@ button.answer-chip:hover {
 
 @media (max-width: 520px) {
   .app-shell {
-    grid-template-rows: minmax(46vh, 48vh) auto;
+    display: block;
+    min-height: 100svh;
   }
 
-  .map-pane,
+  .map-pane {
+    position: sticky;
+    top: 0;
+    height: 64svh;
+    transition: height 180ms ease;
+  }
+
   .leaflet-host {
-    min-height: 46vh;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .app-shell.map-focus .map-pane {
+    height: calc(100svh - 34px);
   }
 
   button {
     min-height: 44px;
   }
 
+  .map-focus-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 500;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border: 1px solid rgb(16 24 32 / 0.22);
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgb(16 24 32 / 0.2);
+    color: #101820;
+  }
+
+  .map-focus-button[aria-pressed="true"],
+  .map-focus-button:hover {
+    border-color: #0f766e;
+    color: #0f766e;
+  }
+
   .control-pane {
+    position: relative;
+    margin-top: -18px;
     gap: 10px;
     padding: 10px;
+    border-top: 1px solid #d9e2df;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 26px rgb(16 24 32 / 0.12);
     padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .control-pane::before {
+    content: "";
+    align-self: center;
+    width: 42px;
+    height: 4px;
+    margin: 0 0 2px;
+    border-radius: 999px;
+    background: #cbd5d6;
   }
 
   .tool-panel {

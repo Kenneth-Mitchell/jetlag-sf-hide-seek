@@ -1,4 +1,20 @@
-import { Check, Clipboard, Crosshair, Eye, EyeOff, Layers, ListChecks, MapPin, Pencil, RotateCcw, Share2, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Clipboard,
+  Crosshair,
+  Eye,
+  EyeOff,
+  Layers,
+  ListChecks,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Pencil,
+  RotateCcw,
+  Share2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
@@ -128,6 +144,7 @@ export function App() {
     appliedQuestions: true,
     answerRegions: true,
   });
+  const [mapFocus, setMapFocus] = useState(false);
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [importText, setImportText] = useState("");
@@ -824,7 +841,7 @@ export function App() {
   }, []);
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${mapFocus ? " map-focus" : ""}`}>
       <section className="map-pane" aria-label="Map">
         <MapView
           candidates={candidates}
@@ -845,6 +862,16 @@ export function App() {
           onThermoToPreview={previewThermoTo}
           onThermoToChange={moveThermoTo}
         />
+        <button
+          type="button"
+          className="map-focus-button"
+          onClick={() => setMapFocus((current) => !current)}
+          aria-label={mapFocus ? "Show more controls" : "Focus map"}
+          aria-pressed={mapFocus}
+          title={mapFocus ? "Show more controls" : "Focus map"}
+        >
+          {mapFocus ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
         <div className="map-layer-control" ref={layerControlRef}>
           <button
             type="button"

@@ -301,6 +301,17 @@ export function MapView({
   }, []);
 
   useEffect(() => {
+    const element = elementRef.current;
+    const map = mapRef.current;
+    if (!element || !map || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const group = appliedConstraintRef.current;
     if (!group) return;
     group.clearLayers();
