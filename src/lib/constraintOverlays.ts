@@ -141,8 +141,18 @@ function voronoiCells(features: PointFeature[]): GeoJSON.FeatureCollection<GeoJS
   };
 }
 
+const voronoiCellCache = new WeakMap<PointFeature[], GeoJSON.FeatureCollection<GeoJSON.Polygon>>();
+
+function cachedVoronoiCells(features: PointFeature[]): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+  const cached = voronoiCellCache.get(features);
+  if (cached) return cached;
+  const cells = voronoiCells(features);
+  voronoiCellCache.set(features, cells);
+  return cells;
+}
+
 function voronoiCellFor(features: PointFeature[], id: string): GeoJSON.Feature<GeoJSON.Polygon> | undefined {
-  return voronoiCells(features).features.find((feature) => feature.properties?.id === id);
+  return cachedVoronoiCells(features).features.find((feature) => feature.properties?.id === id);
 }
 
 function matchingOverlay(constraint: Extract<Constraint, { kind: "matching" }>): ConstraintOverlay[] {
@@ -257,4 +267,26 @@ export function buildConstraintOverlays(constraints: Constraint[]): ConstraintOv
         return tint(transitLineOverlay(constraint));
     }
   });
+}
+
+export function buildVoronoiPreviewOverlays(constraint: Constraint): ConstraintOverlay[] {
+  if (constraint.kind !== "matching" && constraint.kind !== "tentacles") return [];
+  const features = getCategoryFeatures(constraint.category);
+  const cells = cachedVoronoiCells(features).features.map((feature) => ({
+    kind: "polygon" as const,
+    feature,
+    mode: "reference" as const,
+    color: constraint.color,
+  }));
+  if (constraint.kind !== "tentacles") return cells;
+  return [
+    ...cells,
+    {
+      kind: "circle" as const,
+      center: constraint.point,
+      radiusMiles: constraint.radiusMiles,
+      mode: "reference" as const,
+      color: constraint.color,
+    },
+  ];
 }

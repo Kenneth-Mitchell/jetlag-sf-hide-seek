@@ -1,6 +1,6 @@
 import L from "leaflet";
-import { useEffect, useRef } from "react";
-import { buildConstraintOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
+import { useEffect, useRef, useState } from "react";
+import { buildConstraintOverlays, buildVoronoiPreviewOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
 import { milesToMeters } from "../lib/geo";
 import { snapshot, vanNessMarket } from "../lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../lib/types";
@@ -14,6 +14,11 @@ type MapViewProps = {
   onDraftPointChange: (point: LngLat) => void;
   onThermoFromChange: (point: LngLat) => void;
   onThermoToChange: (point: LngLat) => void;
+};
+
+type ThermometerDrag = {
+  handle: "from" | "to";
+  point: LngLat;
 };
 
 function overlayStyle(mode: ConstraintOverlay["mode"], color = "#0f766e"): L.PathOptions {
@@ -43,9 +48,11 @@ function overlayStyle(mode: ConstraintOverlay["mode"], color = "#0f766e"): L.Pat
 }
 
 function handleIcon(label: string, color: string): L.DivIcon {
+  const content = label ? `<span>${label}</span>` : "";
+  const dotClass = label ? "" : " drag-handle-dot";
   return L.divIcon({
     className: "",
-    html: `<div class="drag-handle" style="--handle-color: ${color}"><span>${label}</span></div>`,
+    html: `<div class="drag-handle${dotClass}" style="--handle-color: ${color}">${content}</div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 17],
   });
@@ -57,6 +64,105 @@ function toPoint(latlng: L.LatLng): LngLat {
 
 function isPointConstraint(constraint: Constraint): constraint is Extract<Constraint, { point: LngLat }> {
   return "point" in constraint;
+}
+
+function pointFromPointer(map: L.Map, event: PointerEvent): LngLat {
+  const rect = map.getContainer().getBoundingClientRect();
+  const latlng = map.containerPointToLatLng(L.point(event.clientX - rect.left, event.clientY - rect.top));
+  return { lat: latlng.lat, lng: latlng.lng };
+}
+
+function withDraftDragPreview(
+  constraint: Constraint,
+  draftDragPoint: LngLat | null,
+  thermometerDrag: ThermometerDrag | null,
+): Constraint {
+  if (draftDragPoint && isPointConstraint(constraint)) return { ...constraint, point: draftDragPoint };
+  if (thermometerDrag && constraint.kind === "thermometer") {
+    return thermometerDrag.handle === "from"
+      ? { ...constraint, from: thermometerDrag.point }
+      : { ...constraint, to: thermometerDrag.point };
+  }
+  return constraint;
+}
+
+function attachManualDrag(
+  map: L.Map,
+  marker: L.Marker,
+  onStart: (point: LngLat) => void,
+  onMove: (point: LngLat) => void,
+  onEnd: (point: LngLat) => void,
+): () => void {
+  const element = marker.getElement();
+  if (!element) return () => undefined;
+
+  const controller = new AbortController();
+  let activeCleanup: (() => void) | null = null;
+  L.DomEvent.disableClickPropagation(element);
+  L.DomEvent.disableScrollPropagation(element);
+
+  element.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const restoreMapDragging = map.dragging.enabled();
+      if (restoreMapDragging) map.dragging.disable();
+      element.classList.add("is-dragging");
+      element.setPointerCapture?.(event.pointerId);
+
+      const moveTo = (pointerEvent: PointerEvent) => {
+        const point = pointFromPointer(map, pointerEvent);
+        marker.setLatLng([point.lat, point.lng]);
+        onMove(point);
+        return point;
+      };
+
+      const cleanup = () => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", handleEnd);
+        window.removeEventListener("pointercancel", handleCancel);
+        element.releasePointerCapture?.(event.pointerId);
+        element.classList.remove("is-dragging");
+        if (restoreMapDragging && !map.dragging.enabled()) map.dragging.enable();
+        activeCleanup = null;
+      };
+
+      const handleMove = (pointerEvent: PointerEvent) => {
+        pointerEvent.preventDefault();
+        moveTo(pointerEvent);
+      };
+
+      const handleEnd = (pointerEvent: PointerEvent) => {
+        pointerEvent.preventDefault();
+        const point = moveTo(pointerEvent);
+        onEnd(point);
+        cleanup();
+      };
+
+      const handleCancel = (pointerEvent: PointerEvent) => {
+        pointerEvent.preventDefault();
+        onEnd(toPoint(marker.getLatLng()));
+        cleanup();
+      };
+
+      activeCleanup?.();
+      activeCleanup = cleanup;
+      onStart(toPoint(marker.getLatLng()));
+      moveTo(event);
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", handleEnd);
+      window.addEventListener("pointercancel", handleCancel);
+    },
+    { signal: controller.signal },
+  );
+
+  return () => {
+    activeCleanup?.();
+    controller.abort();
+  };
 }
 
 export function MapView({
@@ -77,20 +183,13 @@ export function MapView({
   const draftPointMarkerRef = useRef<L.Marker | null>(null);
   const thermoFromMarkerRef = useRef<L.Marker | null>(null);
   const thermoToMarkerRef = useRef<L.Marker | null>(null);
-  const dragFrameRef = useRef<number | null>(null);
   const onSelectPointRef = useRef(onSelectPoint);
+  const [draftDragPoint, setDraftDragPoint] = useState<LngLat | null>(null);
+  const [thermometerDrag, setThermometerDrag] = useState<ThermometerDrag | null>(null);
 
   useEffect(() => {
     onSelectPointRef.current = onSelectPoint;
   }, [onSelectPoint]);
-
-  function scheduleDragUpdate(marker: L.Marker, onChange: (point: LngLat) => void) {
-    if (dragFrameRef.current !== null) return;
-    dragFrameRef.current = window.requestAnimationFrame(() => {
-      dragFrameRef.current = null;
-      onChange(toPoint(marker.getLatLng()));
-    });
-  }
 
   useEffect(() => {
     if (!elementRef.current || mapRef.current) return;
@@ -154,7 +253,10 @@ export function MapView({
     if (!group) return;
     group.clearLayers();
     if (!draftConstraint) return;
-    for (const overlay of buildConstraintOverlays([draftConstraint])) {
+    const previewConstraint = withDraftDragPreview(draftConstraint, draftDragPoint, thermometerDrag);
+    const voronoiPreview = draftDragPoint ? buildVoronoiPreviewOverlays(previewConstraint) : [];
+    const overlays = voronoiPreview.length > 0 ? voronoiPreview : buildConstraintOverlays([previewConstraint]);
+    for (const overlay of overlays) {
       const mode = overlay.mode === "reference" ? "reference" : overlay.mode;
       if (overlay.kind === "circle") {
         L.circle([overlay.center.lat, overlay.center.lng], {
@@ -181,7 +283,7 @@ export function MapView({
         ).addTo(group);
       }
     }
-  }, [draftConstraint]);
+  }, [draftConstraint, draftDragPoint, thermometerDrag]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -202,6 +304,8 @@ export function MapView({
     };
 
     if (!draftConstraint) {
+      setDraftDragPoint(null);
+      setThermometerDrag(null);
       removePointMarker();
       removeThermoMarkers();
       return;
@@ -212,14 +316,14 @@ export function MapView({
       removePointMarker();
       if (!thermoFromMarkerRef.current) {
         thermoFromMarkerRef.current = L.marker([draftConstraint.from.lat, draftConstraint.from.lng], {
-          draggable: true,
+          draggable: false,
           icon: handleIcon("A", color),
           zIndexOffset: 1200,
         }).addTo(map);
       }
       if (!thermoToMarkerRef.current) {
         thermoToMarkerRef.current = L.marker([draftConstraint.to.lat, draftConstraint.to.lng], {
-          draggable: true,
+          draggable: false,
           icon: handleIcon("B", color),
           zIndexOffset: 1200,
         }).addTo(map);
@@ -230,34 +334,57 @@ export function MapView({
       toMarker.setIcon(handleIcon("B", color));
       fromMarker.setLatLng([draftConstraint.from.lat, draftConstraint.from.lng]);
       toMarker.setLatLng([draftConstraint.to.lat, draftConstraint.to.lng]);
-      fromMarker.off("drag");
-      fromMarker.off("dragend");
-      toMarker.off("drag");
-      toMarker.off("dragend");
-      fromMarker.on("drag", () => scheduleDragUpdate(fromMarker, onThermoFromChange));
-      fromMarker.on("dragend", () => onThermoFromChange(toPoint(fromMarker.getLatLng())));
-      toMarker.on("drag", () => scheduleDragUpdate(toMarker, onThermoToChange));
-      toMarker.on("dragend", () => onThermoToChange(toPoint(toMarker.getLatLng())));
-      return;
+      const cleanupFrom = attachManualDrag(
+        map,
+        fromMarker,
+        (point) => setThermometerDrag({ handle: "from", point }),
+        (point) => setThermometerDrag({ handle: "from", point }),
+        (point) => {
+          onThermoFromChange(point);
+          setThermometerDrag(null);
+        },
+      );
+      const cleanupTo = attachManualDrag(
+        map,
+        toMarker,
+        (point) => setThermometerDrag({ handle: "to", point }),
+        (point) => setThermometerDrag({ handle: "to", point }),
+        (point) => {
+          onThermoToChange(point);
+          setThermometerDrag(null);
+        },
+      );
+      return () => {
+        cleanupFrom();
+        cleanupTo();
+      };
     }
 
     removeThermoMarkers();
+    setThermometerDrag(null);
     if (isPointConstraint(draftConstraint)) {
       if (!draftPointMarkerRef.current) {
         draftPointMarkerRef.current = L.marker([draftConstraint.point.lat, draftConstraint.point.lng], {
-          draggable: true,
-          icon: handleIcon("Ask", color),
+          draggable: false,
+          icon: handleIcon("", color),
           zIndexOffset: 1200,
         }).addTo(map);
       }
       const marker = draftPointMarkerRef.current;
-      marker.setIcon(handleIcon("Ask", color));
-      marker.setLatLng([draftConstraint.point.lat, draftConstraint.point.lng]);
-      marker.off("drag");
-      marker.off("dragend");
-      marker.on("drag", () => scheduleDragUpdate(marker, onDraftPointChange));
-      marker.on("dragend", () => onDraftPointChange(toPoint(marker.getLatLng())));
+      marker.setIcon(handleIcon("", color));
+      if (!draftDragPoint) marker.setLatLng([draftConstraint.point.lat, draftConstraint.point.lng]);
+      return attachManualDrag(
+        map,
+        marker,
+        setDraftDragPoint,
+        setDraftDragPoint,
+        (point) => {
+          onDraftPointChange(point);
+          setDraftDragPoint(null);
+        },
+      );
     } else {
+      setDraftDragPoint(null);
       removePointMarker();
     }
   }, [draftConstraint, onDraftPointChange, onThermoFromChange, onThermoToChange]);

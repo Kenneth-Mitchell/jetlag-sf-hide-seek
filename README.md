@@ -29,7 +29,8 @@ Implemented:
 - Map-based question setup uses draggable draft handles:
   - one draggable ask point for radar, matching, measuring, tentacles, and district questions
   - draggable A/B points for thermometer questions
-  - draft geometry updates live while dragging, throttled to animation frames
+  - draft geometry previews while dragging and commits the question point when released
+  - matching and tentacles show the full category Voronoi while dragging, then the selected cell after release
 - One-tap current-location reference point using the browser geolocation API.
 - Copyable plain-English question text in the seeker flow.
 - Hider mode canonical nearest answers from the same frozen snapshot.

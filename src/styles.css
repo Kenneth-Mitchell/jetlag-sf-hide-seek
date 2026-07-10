@@ -70,6 +70,21 @@ button:disabled {
   line-height: 1;
   text-transform: uppercase;
   touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.drag-handle.is-dragging {
+  cursor: grabbing;
+}
+
+.drag-handle-dot::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.45);
 }
 
 .drag-handle span {
