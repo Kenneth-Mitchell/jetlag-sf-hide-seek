@@ -24,6 +24,8 @@ Implemented:
   - Voronoi cells for matching and tentacles
   - district polygons for supervisorial district questions
 - Per-question overlay colors with editable color swatches in the question stack.
+- Question builder shows the possible answer set before asking.
+- Question stack supports editing existing questions without duplicating them.
 - One-tap current-location reference point using the browser geolocation API.
 - Copyable plain-English question text in the seeker flow.
 - Hider mode canonical nearest answers from the same frozen snapshot.

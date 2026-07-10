@@ -1,4 +1,4 @@
-import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, RotateCcw, Trash2 } from "lucide-react";
+import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
 import { constraintColor, nextQuestionColor } from "./lib/colors";
@@ -55,6 +55,11 @@ function lineOptions(): string[] {
   return [...lines].sort((a, b) => a.localeCompare(b));
 }
 
+type AnswerOption = {
+  label: string;
+  detail?: string;
+};
+
 export function App() {
   const [mode, setMode] = useState<Mode>("seeker");
   const [selectedPoint, setSelectedPoint] = useState<LngLat>(vanNessMarket);
@@ -73,6 +78,7 @@ export function App() {
   const [transitLine, setTransitLine] = useState("N");
   const [dataCategory, setDataCategory] = useState<CategoryKey>("museums");
   const [locationStatus, setLocationStatus] = useState("");
+  const [editingConstraintId, setEditingConstraintId] = useState<string | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -83,6 +89,17 @@ export function App() {
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
   const nearestPoi = nearestFeature(selectedPoint, categoryFeatures);
+  const tentacleAnswerFeatures = useMemo(
+    () =>
+      categoryFeatures
+        .map((feature) => ({
+          feature,
+          miles: distanceMiles(selectedPoint, lngLatFromFeature(feature)),
+        }))
+        .filter((item) => item.miles <= tentacleRadius)
+        .sort((a, b) => a.miles - b.miles),
+    [categoryFeatures, selectedPoint, tentacleRadius],
+  );
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
   const lines = useMemo(lineOptions, []);
   const questionDraft = useMemo(
@@ -99,26 +116,89 @@ export function App() {
       }),
     [category, questionKind, radiusMiles, selectedPoint, tentacleRadius, thermoFrom, thermoTo, transitLine],
   );
+  const canApplyQuestion = questionKind !== "tentacles" || tentacleAnswerFeatures.length > 0;
+  const answerOptions = useMemo<AnswerOption[]>(() => {
+    if (questionKind === "radius") {
+      return [
+        { label: "Yes", detail: `inside ${radiusMiles.toFixed(2)} mi` },
+        { label: "No", detail: `outside ${radiusMiles.toFixed(2)} mi` },
+      ];
+    }
+    if (questionKind === "thermometer") {
+      return [
+        { label: "Warmer", detail: "B is closer than A" },
+        { label: "Colder", detail: "B is farther than A" },
+        { label: "Same", detail: "too close to call" },
+      ];
+    }
+    if (questionKind === "matching") {
+      const nearest = nearestFeature(selectedPoint, categoryFeatures);
+      const noun = CATEGORY_LABELS[category].toLowerCase();
+      return [
+        { label: "Yes", detail: nearest ? `same nearest ${noun}: ${nearest.properties.name}` : `same nearest ${noun}` },
+        { label: "No", detail: `different nearest ${noun}` },
+      ];
+    }
+    if (questionKind === "measuring") {
+      const nearest = nearestPoi;
+      const distance = nearest ? distanceMiles(selectedPoint, lngLatFromFeature(nearest)) : undefined;
+      const noun = CATEGORY_LABELS[category].toLowerCase();
+      return [
+        { label: "Closer", detail: distance === undefined ? `closer to a ${noun}` : `< ${distance.toFixed(2)} mi from nearest ${noun}` },
+        { label: "Farther", detail: distance === undefined ? `farther from a ${noun}` : `> ${distance.toFixed(2)} mi from nearest ${noun}` },
+      ];
+    }
+    if (questionKind === "tentacles") {
+      if (tentacleAnswerFeatures.length === 0) {
+        return [{ label: "No listed POIs", detail: `within ${tentacleRadius.toFixed(1)} mi` }];
+      }
+      const shown = tentacleAnswerFeatures.slice(0, 8).map(({ feature, miles }) => ({
+        label: String(feature.properties.name),
+        detail: `${miles.toFixed(2)} mi`,
+      }));
+      const remaining = tentacleAnswerFeatures.length - shown.length;
+      return remaining > 0 ? [...shown, { label: `+${remaining} more`, detail: "scroll category list if needed" }] : shown;
+    }
+    if (questionKind === "district") {
+      return [
+        { label: "Yes", detail: "same supervisorial district" },
+        { label: "No", detail: "different supervisorial district" },
+      ];
+    }
+    return [
+      { label: "Yes", detail: `${transitLine || "line"} stops in hiding zone` },
+      { label: "No", detail: `${transitLine || "line"} does not stop there` },
+    ];
+  }, [category, categoryFeatures, nearestPoi, questionKind, radiusMiles, selectedPoint, tentacleAnswerFeatures, tentacleRadius, transitLine]);
 
   useEffect(() => {
+    const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
+    const selectedFeatureInRange =
+      selectedFeature && distanceMiles(selectedPoint, lngLatFromFeature(selectedFeature)) <= tentacleRadius;
+    if (questionKind === "tentacles" && selectedFeatureInRange) return;
+    const nearestInRange = tentacleAnswerFeatures[0]?.feature;
     const nearest = nearestFeature(selectedPoint, categoryFeatures);
-    if (nearest) setSelectedPoiId(nearest.properties.id);
-  }, [category, selectedPoint]);
+    if (nearestInRange) setSelectedPoiId(nearestInRange.properties.id);
+    else if (nearest) setSelectedPoiId(nearest.properties.id);
+  }, [categoryFeatures, questionKind, selectedPoint, selectedPoiId, tentacleAnswerFeatures, tentacleRadius]);
 
-  function addConstraint() {
+  function buildDraftConstraint({ id, enabled, color }: { id: string; enabled: boolean; color: string }): Constraint {
     const label = QUESTION_KINDS.find((kind) => kind.value === questionKind)?.label ?? questionKind;
-    const base = { id: makeId(), label, enabled: true, color: nextQuestionColor(constraints) };
-    let next: Constraint;
+    const base = { id, label, enabled, color };
     if (questionKind === "radius") {
-      next = { ...base, kind: "radius", point: selectedPoint, miles: radiusMiles, answer: radiusAnswer };
-    } else if (questionKind === "thermometer") {
-      next = { ...base, kind: "thermometer", from: thermoFrom, to: thermoTo, answer: thermoAnswer };
-    } else if (questionKind === "matching") {
-      next = { ...base, kind: "matching", point: selectedPoint, category, answer: yesNoAnswer };
-    } else if (questionKind === "measuring") {
-      next = { ...base, kind: "measuring", point: selectedPoint, category, answer: measureAnswer };
-    } else if (questionKind === "tentacles") {
-      next = {
+      return { ...base, kind: "radius", point: selectedPoint, miles: radiusMiles, answer: radiusAnswer };
+    }
+    if (questionKind === "thermometer") {
+      return { ...base, kind: "thermometer", from: thermoFrom, to: thermoTo, answer: thermoAnswer };
+    }
+    if (questionKind === "matching") {
+      return { ...base, kind: "matching", point: selectedPoint, category, answer: yesNoAnswer };
+    }
+    if (questionKind === "measuring") {
+      return { ...base, kind: "measuring", point: selectedPoint, category, answer: measureAnswer };
+    }
+    if (questionKind === "tentacles") {
+      return {
         ...base,
         kind: "tentacles",
         point: selectedPoint,
@@ -126,12 +206,55 @@ export function App() {
         selectedPoiId: selectedPoiId || nearestPoi?.properties.id || "",
         radiusMiles: tentacleRadius,
       };
-    } else if (questionKind === "district") {
-      next = { ...base, kind: "district", point: selectedPoint, answer: yesNoAnswer };
-    } else {
-      next = { ...base, kind: "transit-line", line: transitLine.trim(), answer: yesNoAnswer };
     }
-    setConstraints((current) => [next, ...current]);
+    if (questionKind === "district") {
+      return { ...base, kind: "district", point: selectedPoint, answer: yesNoAnswer };
+    }
+    return { ...base, kind: "transit-line", line: transitLine.trim(), answer: yesNoAnswer };
+  }
+
+  function applyQuestionForm() {
+    const existing = constraints.find((constraint) => constraint.id === editingConstraintId);
+    const next = buildDraftConstraint({
+      id: existing?.id ?? makeId(),
+      enabled: existing?.enabled ?? true,
+      color: existing?.color ?? nextQuestionColor(constraints),
+    });
+    if (existing) {
+      setConstraints((current) => current.map((constraint) => (constraint.id === existing.id ? next : constraint)));
+      setEditingConstraintId(null);
+    } else {
+      setConstraints((current) => [next, ...current]);
+    }
+  }
+
+  function editConstraint(constraint: Constraint) {
+    setEditingConstraintId(constraint.id);
+    setQuestionKind(constraint.kind);
+    if ("point" in constraint) setSelectedPoint(constraint.point);
+    if (constraint.kind === "radius") {
+      setRadiusMiles(constraint.miles);
+      setRadiusAnswer(constraint.answer);
+    } else if (constraint.kind === "thermometer") {
+      setThermoFrom(constraint.from);
+      setThermoTo(constraint.to);
+      setThermoAnswer(constraint.answer);
+    } else if (constraint.kind === "matching") {
+      setCategory(constraint.category);
+      setYesNoAnswer(constraint.answer);
+    } else if (constraint.kind === "measuring") {
+      setCategory(constraint.category);
+      setMeasureAnswer(constraint.answer);
+    } else if (constraint.kind === "tentacles") {
+      setCategory(constraint.category);
+      setSelectedPoiId(constraint.selectedPoiId);
+      setTentacleRadius(constraint.radiusMiles);
+    } else if (constraint.kind === "district") {
+      setYesNoAnswer(constraint.answer);
+    } else {
+      setTransitLine(constraint.line);
+      setYesNoAnswer(constraint.answer);
+    }
   }
 
   function toggleConstraint(id: string) {
@@ -144,6 +267,7 @@ export function App() {
 
   function removeConstraint(id: string) {
     setConstraints((current) => current.filter((constraint) => constraint.id !== id));
+    if (editingConstraintId === id) setEditingConstraintId(null);
   }
 
   function updateConstraintColor(id: string, color: string) {
@@ -314,10 +438,15 @@ export function App() {
                     </label>
                     <label>
                       Hider answer
-                      <select value={selectedPoiId} onChange={(event) => setSelectedPoiId(event.target.value)}>
-                        {categoryFeatures.map((feature) => (
+                      <select
+                        value={tentacleAnswerFeatures.some(({ feature }) => feature.properties.id === selectedPoiId) ? selectedPoiId : ""}
+                        onChange={(event) => setSelectedPoiId(event.target.value)}
+                        disabled={tentacleAnswerFeatures.length === 0}
+                      >
+                        {tentacleAnswerFeatures.length === 0 && <option value="">No POIs in range</option>}
+                        {tentacleAnswerFeatures.map(({ feature, miles }) => (
                           <option key={feature.properties.id} value={feature.properties.id}>
-                            {feature.properties.name}
+                            {feature.properties.name} ({miles.toFixed(2)} mi)
                           </option>
                         ))}
                       </select>
@@ -352,9 +481,34 @@ export function App() {
                 </button>
               </div>
 
-              <button className="primary-action" type="button" onClick={addConstraint}>
+              <div className="answer-preview">
+                <div className="section-heading">
+                  <h2>Possible Answers</h2>
+                  <span>{answerOptions.length}</span>
+                </div>
+                <div className="answer-chip-list">
+                  {answerOptions.map((option) => (
+                    <span key={`${option.label}-${option.detail}`} className="answer-chip">
+                      <strong>{option.label}</strong>
+                      {option.detail && <em>{option.detail}</em>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {editingConstraintId && (
+                <div className="edit-banner">
+                  <span>Editing an existing question</span>
+                  <button type="button" onClick={() => setEditingConstraintId(null)}>
+                    <X size={17} />
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              <button className="primary-action" type="button" onClick={applyQuestionForm} disabled={!canApplyQuestion}>
                 <ListChecks size={18} />
-                Apply answer
+                {editingConstraintId ? "Save changes" : "Apply answer"}
               </button>
             </section>
 
@@ -365,7 +519,14 @@ export function App() {
                   <button type="button" title="Export share link" onClick={exportState}>
                     <ListChecks size={17} />
                   </button>
-                  <button type="button" title="Clear questions" onClick={() => setConstraints([])}>
+                  <button
+                    type="button"
+                    title="Clear questions"
+                    onClick={() => {
+                      setConstraints([]);
+                      setEditingConstraintId(null);
+                    }}
+                  >
                     <RotateCcw size={17} />
                   </button>
                 </div>
@@ -393,6 +554,9 @@ export function App() {
                       {constraint.enabled ? <Eye size={17} /> : <EyeOff size={17} />}
                     </button>
                     <span>{formatAppliedQuestion(constraint)}</span>
+                    <button type="button" title="Edit question" onClick={() => editConstraint(constraint)}>
+                      <Pencil size={17} />
+                    </button>
                     <button type="button" title="Remove question" onClick={() => removeConstraint(constraint.id)}>
                       <Trash2 size={17} />
                     </button>
