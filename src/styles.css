@@ -853,6 +853,7 @@ button.answer-chip:hover {
 
   .control-pane::before {
     content: "";
+    order: 0;
     align-self: center;
     width: 42px;
     height: 4px;
@@ -866,8 +867,46 @@ button.answer-chip:hover {
     padding: 10px;
   }
 
+  .panel-stack {
+    display: contents;
+  }
+
+  .question-composer-panel,
+  .hider-panel,
+  .data-panel {
+    order: 1;
+  }
+
+  .question-stack-panel {
+    order: 2;
+  }
+
+  .app-header {
+    order: 3;
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid #d9e2df;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .app-header > div:first-child {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   h1 {
-    font-size: 1.55rem;
+    font-size: 1.02rem;
+    line-height: 1.1;
+  }
+
+  .eyebrow {
+    margin: 0;
+    font-size: 0.66rem;
   }
 
   .mode-tabs {
@@ -883,9 +922,18 @@ button.answer-chip:hover {
   }
 
   .point-strip {
+    order: 4;
     gap: 7px;
     padding: 7px 8px;
     font-size: 0.84rem;
+  }
+
+  .status-line {
+    order: 5;
+  }
+
+  .station-list-panel {
+    order: 6;
   }
 
   .point-strip svg {
@@ -896,10 +944,6 @@ button.answer-chip:hover {
     min-height: 38px;
     padding: 0 9px;
     font-size: 0.88rem;
-  }
-
-  .app-header {
-    display: grid;
   }
 
   .field-grid {

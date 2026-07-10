@@ -907,7 +907,7 @@ export function App() {
         </div>
       </section>
 
-      <section className="control-pane">
+      <section className={`control-pane mode-${mode}`}>
         <header className="app-header">
           <div>
             <p className="eyebrow">San Francisco Hide & Seek</p>
@@ -939,7 +939,7 @@ export function App() {
 
         {mode === "seeker" && (
           <div className="panel-stack">
-            <section className="tool-panel">
+            <section className="tool-panel question-composer-panel">
               <div className="field-grid">
                 <label>
                   Question
@@ -1181,7 +1181,7 @@ export function App() {
               )}
             </section>
 
-            <section className="tool-panel">
+            <section className="tool-panel question-stack-panel">
               <div className="section-heading stack-heading">
                 <h2>Question Stack</h2>
                 <div className="button-row">
@@ -1287,7 +1287,7 @@ export function App() {
         )}
 
         {mode === "hider" && (
-          <section className="tool-panel">
+          <section className="tool-panel hider-panel">
             <div className="section-heading">
               <h2>Canonical Answers</h2>
               <span>{pointLabel(selectedPoint)}</span>
@@ -1310,7 +1310,7 @@ export function App() {
         )}
 
         {mode === "data" && (
-          <section className="tool-panel">
+          <section className="tool-panel data-panel">
             <div className="section-heading">
               <h2>Frozen Snapshot</h2>
               <span>{snapshot.generatedAt.slice(0, 10)}</span>
@@ -1389,7 +1389,7 @@ function CandidateList({ candidates }: { candidates: PointFeature[] }) {
   }, [candidates, normalizedSearch]);
 
   return (
-    <section className="tool-panel">
+    <section className="tool-panel station-list-panel">
       <div className="section-heading">
         <h2>Remaining Stations</h2>
         <span>{normalizedSearch ? `${visibleCandidates.length}/${candidates.length}` : candidates.length}</span>
