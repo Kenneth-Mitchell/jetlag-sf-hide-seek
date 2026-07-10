@@ -2,6 +2,7 @@ import * as turf from "@turf/turf";
 import { constraintColor } from "./colors";
 import { districtAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./districts";
 import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
+import { distanceToLinearCategoryMiles, isLinearCategory, linearCategoryLines } from "./linearCategories";
 import { getCategoryFeatures, snapshot } from "./snapshot";
 import { validStationsReachedByTransitLine } from "./transit";
 import type { Constraint, LngLat, PointFeature } from "./types";
@@ -201,6 +202,36 @@ function matchingOverlay(constraint: Extract<Constraint, { kind: "matching" }>):
 }
 
 function measuringOverlay(constraint: Extract<Constraint, { kind: "measuring" }>): ConstraintOverlay[] {
+  if (isLinearCategory(constraint.category)) {
+    const referenceMiles = distanceToLinearCategoryMiles(constraint.point, constraint.category);
+    if (referenceMiles === undefined) return [];
+    const lines = linearCategoryLines(constraint.category);
+    const bandMode: ConstraintOverlay["mode"] = constraint.answer === "closer" ? "keep" : "exclude";
+    const bandOverlays = referenceMiles <= 0.005
+      ? []
+      : lines.flatMap((line) => {
+          const buffer = turf.buffer(line, referenceMiles, { units: "miles" });
+          if (!buffer || (buffer.geometry.type !== "Polygon" && buffer.geometry.type !== "MultiPolygon")) return [];
+          return [
+            {
+              kind: "polygon" as const,
+              feature: buffer as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
+              mode: bandMode,
+              stroke: false,
+              fillOpacity: constraint.answer === "closer" ? 0.16 : 0.1,
+            },
+          ];
+        });
+    const lineOverlays = lines.map((line) => ({
+      kind: "line" as const,
+      coordinates: line.geometry.coordinates.map(([lng, lat]) => ({ lng, lat })),
+      mode: "reference" as const,
+      weight: 2.8,
+      dashArray: "",
+    }));
+    return [...bandOverlays, ...lineOverlays];
+  }
+
   const reference = nearestFeatureWithDistance(constraint.point, getCategoryFeatures(constraint.category));
   if (!reference) return [];
   return getCategoryFeatures(constraint.category).map((feature) => ({

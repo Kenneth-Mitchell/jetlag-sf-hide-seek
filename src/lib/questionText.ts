@@ -1,5 +1,6 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { nearestFeature, nearestFeatureWithDistance } from "./geo";
+import { distanceToLinearCategoryMiles, isLinearCategory } from "./linearCategories";
 import { getCategoryFeatures, snapshot } from "./snapshot";
 import type { CategoryKey, Constraint, LngLat } from "./types";
 
@@ -42,6 +43,11 @@ export function formatQuestionDraft({
     return `Is your nearest ${categoryPhrase(category)} the same as my nearest ${categoryPhrase(category)}?${suffix}`;
   }
   if (kind === "measuring") {
+    if (isLinearCategory(category)) {
+      const distance = distanceToLinearCategoryMiles(point, category);
+      const suffix = distance === undefined ? "" : ` My distance is ${distance.toFixed(2)} miles.`;
+      return `Compared to me, are you closer to or farther from the ${categoryPhrase(category)}?${suffix}`;
+    }
     const nearest = nearestFeatureWithDistance(point, getCategoryFeatures(category));
     const suffix = nearest ? ` My nearest is ${nearest.feature.properties.name} (${nearest.miles.toFixed(2)} miles).` : "";
     return `Compared to me, are you closer to or farther from the nearest ${categoryPhrase(category)}?${suffix}`;

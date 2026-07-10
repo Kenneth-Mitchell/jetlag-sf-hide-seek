@@ -147,6 +147,8 @@ const GEOMETRY_SOURCES = {
     "https://data.sfgov.org/resource/hcgx-vtsb.geojson?$limit=5000",
   supervisorDistricts:
     "https://data.sfgov.org/resource/f2zs-jevy.geojson?$limit=5000",
+  coastline:
+    "https://data.sfgov.org/resource/txuc-3kzm.geojson?$limit=5000",
 };
 
 function normalizeHeader(value) {
@@ -622,6 +624,7 @@ async function main() {
       sfmtaGtfsFile: SFMTA_GTFS_FILENAME,
       playableArea: GEOMETRY_SOURCES.playableArea,
       supervisorDistricts: GEOMETRY_SOURCES.supervisorDistricts,
+      coastline: GEOMETRY_SOURCES.coastline,
     },
     warnings,
     integrity,

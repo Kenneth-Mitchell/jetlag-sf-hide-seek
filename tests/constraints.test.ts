@@ -5,6 +5,7 @@ import { buildConstraintOverlays, buildDistrictAnswerPreviewOverlays, buildMatch
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { districtNumberFromFeature, supervisorDistrictFeatures } from "../src/lib/districts";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
+import { distanceToLinearCategoryMiles, linearCategoryLines } from "../src/lib/linearCategories";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
 import { allTransitLineOptions, transitLineStopPointsForQuestion, transitLineStopsInStationZone, validStationsReachedByTransitLine } from "../src/lib/transit";
 import type { CandidateStation, Constraint, LngLat } from "../src/lib/types";
@@ -251,6 +252,51 @@ describe("constraint engine", () => {
       const center = lngLatFromFeature(station);
       expect(overlayCenters.has(`${center.lat.toFixed(6)},${center.lng.toFixed(6)}`)).toBe(true);
     }
+  });
+
+  it("measures coastline as the nearer Bay or Pacific shoreline", () => {
+    const oceanBeach = { lat: 37.7609, lng: -122.5102 };
+    const oceanBeachDistance = distanceToLinearCategoryMiles(oceanBeach, "coastline");
+    const vanNessDistance = distanceToLinearCategoryMiles(vanNessMarket, "coastline");
+    const canonical = canonicalAnswers(vanNessMarket).nearest.coastline as { name: string; miles: number };
+    expect(linearCategoryLines("coastline").length).toBeGreaterThan(10);
+    expect(oceanBeachDistance).toBeLessThan(0.2);
+    expect(vanNessDistance).toBeGreaterThan(1);
+    expect(canonical.name).toBe("Coastline");
+    expect(canonical.miles).toBe(vanNessDistance);
+  });
+
+  it("draws coastline distance bands using the actual shoreline geometry", () => {
+    const overlays = buildConstraintOverlays([{
+      id: "coastline-overlay",
+      kind: "measuring",
+      label: "Coastline",
+      point: vanNessMarket,
+      category: "coastline",
+      answer: "closer",
+      enabled: true,
+      color: "#123456",
+    }]);
+    expect(overlays.some((overlay) => overlay.kind === "line")).toBe(true);
+    expect(overlays.some((overlay) => overlay.kind === "polygon")).toBe(true);
+    expect(overlays.every((overlay) => overlay.color === "#123456")).toBe(true);
+  });
+
+  it("keeps a truthful coastline measuring answer", () => {
+    const fixture = station("Judah St & La Playa St (Ocean Beach)");
+    const hiderDistance = distanceToLinearCategoryMiles(lngLatFromFeature(fixture), "coastline");
+    const seekerDistance = distanceToLinearCategoryMiles(vanNessMarket, "coastline");
+    const constraint: Constraint = {
+      id: "coastline-measure",
+      kind: "measuring",
+      label: "Coastline",
+      point: vanNessMarket,
+      category: "coastline",
+      answer: (hiderDistance ?? 0) <= (seekerDistance ?? 0) ? "closer" : "farther",
+      enabled: true,
+    };
+    expect(hiderDistance).toBeLessThan(seekerDistance ?? 0);
+    expect(stationSurvivesConstraint(fixture, constraint)).toBe(true);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

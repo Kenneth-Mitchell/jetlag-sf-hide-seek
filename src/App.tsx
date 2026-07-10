@@ -1,13 +1,14 @@
 import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
+import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./lib/districts";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
+import { distanceToLinearCategoryMiles, isLinearCategory } from "./lib/linearCategories";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
-import { getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
+import { allPointCategories, getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
 import { allTransitLineOptions, transitLineStopPointsForQuestion } from "./lib/transit";
 import type { CategoryKey, Constraint, LngLat, PointFeature } from "./lib/types";
 import { MapView } from "./components/MapView";
@@ -128,6 +129,14 @@ export function App() {
   );
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
   const lines = useMemo(allTransitLineOptions, []);
+  const pointCategories = useMemo(allPointCategories, []);
+  const categoryOptions = (
+    questionKind === "matching"
+      ? MATCHING_CATEGORIES
+      : questionKind === "tentacles"
+        ? TENTACLE_CATEGORIES
+        : MEASURING_CATEGORIES
+  ) as readonly CategoryKey[];
   const filteredTransitLines = useMemo(() => {
     const query = transitLineSearch.trim().toLowerCase();
     if (!query) return lines;
@@ -327,12 +336,16 @@ export function App() {
         }));
     }
     if (questionKind === "measuring") {
-      const nearest = nearestPoi;
-      const distance = nearest ? distanceMiles(liveSelectedPoint, lngLatFromFeature(nearest)) : undefined;
+      const distance = isLinearCategory(category)
+        ? distanceToLinearCategoryMiles(liveSelectedPoint, category)
+        : nearestPoi
+          ? distanceMiles(liveSelectedPoint, lngLatFromFeature(nearestPoi))
+          : undefined;
       const noun = CATEGORY_LABELS[category].toLowerCase();
+      const target = isLinearCategory(category) ? `the ${noun}` : `nearest ${noun}`;
       return [
-        { label: "Closer", detail: distance === undefined ? `closer to a ${noun}` : `< ${distance.toFixed(2)} mi from nearest ${noun}` },
-        { label: "Farther", detail: distance === undefined ? `farther from a ${noun}` : `> ${distance.toFixed(2)} mi from nearest ${noun}` },
+        { label: "Closer", detail: distance === undefined ? `closer to ${target}` : `< ${distance.toFixed(2)} mi from ${target}` },
+        { label: "Farther", detail: distance === undefined ? `farther from ${target}` : `> ${distance.toFixed(2)} mi from ${target}` },
       ];
     }
     if (questionKind === "tentacles") {
@@ -366,7 +379,7 @@ export function App() {
       },
       { label: "No", detail: `${transitLine || "line"} has no stop within 1/4 mi of the chosen station` },
     ];
-  }, [category, districtAnswerLegend, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine, transitStopCount]);
+  }, [category, districtAnswerLegend, liveSelectedPoint, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine, transitStopCount]);
   const compactVoronoiAnswers = questionKind === "matching" || questionKind === "tentacles";
   const shouldCompactAnswers = compactVoronoiAnswers && answerOptions.length > COMPACT_VORONOI_ANSWER_LIMIT;
   const visibleAnswerOptions = useMemo(() => {
@@ -383,6 +396,11 @@ export function App() {
   useEffect(() => {
     setShowAllAnswers(false);
   }, [category, questionKind, radiusMiles, selectedPoint, tentacleRadius]);
+
+  useEffect(() => {
+    if (questionKind !== "matching" && questionKind !== "measuring" && questionKind !== "tentacles") return;
+    if (!categoryOptions.includes(category)) setCategory(categoryOptions[0]);
+  }, [category, categoryOptions, questionKind]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
@@ -768,7 +786,7 @@ export function App() {
                   <label>
                     Category
                     <select value={category} onChange={(event) => setCategory(event.target.value as CategoryKey)}>
-                      {(questionKind === "matching" ? MATCHING_CATEGORIES : MEASURING_CATEGORIES).map((key) => (
+                      {categoryOptions.map((key) => (
                         <option key={key} value={key}>
                           {CATEGORY_LABELS[key]}
                         </option>
@@ -1036,7 +1054,7 @@ export function App() {
                 return (
                   <AnswerRow
                     key={key}
-                    label={`Nearest ${CATEGORY_LABELS[key]}`}
+                    label={key === "coastline" ? "Distance to Coastline" : `Nearest ${CATEGORY_LABELS[key]}`}
                     value={answer ? `${answer.name} · ${answer.miles.toFixed(2)} mi` : "No data"}
                   />
                 );
@@ -1060,7 +1078,7 @@ export function App() {
             <label>
               Browse category
               <select value={dataCategory} onChange={(event) => setDataCategory(event.target.value as CategoryKey)}>
-                {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => (
+                {pointCategories.map((key) => (
                   <option key={key} value={key}>
                     {CATEGORY_LABELS[key]}
                   </option>

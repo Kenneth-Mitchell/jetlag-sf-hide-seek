@@ -40,7 +40,8 @@ export type CategoryKey =
   | "libraries"
   | "hospitals"
   | "foreignConsulates"
-  | "farmersMarkets";
+  | "farmersMarkets"
+  | "coastline";
 
 export type Snapshot = {
   schemaVersion: number;
@@ -54,6 +55,7 @@ export type Snapshot = {
   geometries: {
     playableArea: GeoJSON.FeatureCollection;
     supervisorDistricts: GeoJSON.FeatureCollection;
+    coastline: GeoJSON.FeatureCollection;
   };
 };
 

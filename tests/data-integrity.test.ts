@@ -29,5 +29,7 @@ describe("frozen SF snapshot", () => {
   it("contains current supervisor district and playable-area geometry", () => {
     expect(snapshot.geometries.supervisorDistricts.features).toHaveLength(11);
     expect(snapshot.geometries.playableArea.features).toHaveLength(11);
+    expect(snapshot.geometries.coastline.features).toHaveLength(1);
+    expect(snapshot.geometries.coastline.features[0].geometry?.type).toBe("MultiPolygon");
   });
 });

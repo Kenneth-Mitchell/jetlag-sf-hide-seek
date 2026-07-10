@@ -9,7 +9,7 @@ export function getCategoryFeatures(category: CategoryKey): PointFeature[] {
   return (snapshot.layers[category] as FeatureCollection | undefined)?.features ?? [];
 }
 
-export function allQuestionCategories(): CategoryKey[] {
+export function allPointCategories(): CategoryKey[] {
   return [
     "railStations",
     "mountains",
@@ -21,6 +21,7 @@ export function allQuestionCategories(): CategoryKey[] {
     "libraries",
     "hospitals",
     "foreignConsulates",
+    "farmersMarkets",
   ];
 }
 

@@ -1,5 +1,6 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { distanceMiles, distanceToFeatureMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, nearestOtherDistance, pointInFeatureCollection, sampleStationZone } from "./geo";
+import { distanceToLinearCategoryMiles, isLinearCategory, nearestLinearCategoryWithDistance } from "./linearCategories";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
 import { transitLineStopsInStationZone as stationHasTransitLineStop } from "./transit";
 import type { CandidateStation, Constraint, LngLat, PointFeature } from "./types";
@@ -42,6 +43,11 @@ function districtAt(point: LngLat): string | undefined {
   return district ? String(district) : undefined;
 }
 
+function measuringDistance(point: LngLat, category: Extract<Constraint, { kind: "measuring" }>["category"]): number | undefined {
+  if (isLinearCategory(category)) return distanceToLinearCategoryMiles(point, category);
+  return nearestFeatureWithDistance(point, getCategoryFeatures(category))?.miles;
+}
+
 export { transitLineStopsInStationZone } from "./transit";
 
 export function stationSurvivesConstraint(station: CandidateStation, constraint: Constraint): boolean {
@@ -70,13 +76,12 @@ export function stationSurvivesConstraint(station: CandidateStation, constraint:
         : differentNearestPossible(station, target, features);
     }
     case "measuring": {
-      const features = getCategoryFeatures(constraint.category);
-      const reference = nearestFeatureWithDistance(constraint.point, features);
-      const stationNearest = nearestFeatureWithDistance(center, features);
-      if (!reference || !stationNearest) return true;
-      const minPossible = Math.max(0, stationNearest.miles - radius);
-      const maxPossible = stationNearest.miles + radius;
-      return constraint.answer === "closer" ? minPossible <= reference.miles : maxPossible >= reference.miles;
+      const referenceMiles = measuringDistance(constraint.point, constraint.category);
+      const stationMiles = measuringDistance(center, constraint.category);
+      if (referenceMiles === undefined || stationMiles === undefined) return true;
+      const minPossible = Math.max(0, stationMiles - radius);
+      const maxPossible = stationMiles + radius;
+      return constraint.answer === "closer" ? minPossible <= referenceMiles : maxPossible >= referenceMiles;
     }
     case "tentacles": {
       const features = getCategoryFeatures(constraint.category);
@@ -121,11 +126,10 @@ export function pointSatisfiesConstraint(point: LngLat, constraint: Constraint):
       return constraint.answer === "yes" ? same : !same;
     }
     case "measuring": {
-      const features = getCategoryFeatures(constraint.category);
-      const reference = nearestFeatureWithDistance(constraint.point, features);
-      const hider = nearestFeatureWithDistance(point, features);
-      if (!reference || !hider) return true;
-      return constraint.answer === "closer" ? hider.miles <= reference.miles : hider.miles >= reference.miles;
+      const referenceMiles = measuringDistance(constraint.point, constraint.category);
+      const hiderMiles = measuringDistance(point, constraint.category);
+      if (referenceMiles === undefined || hiderMiles === undefined) return true;
+      return constraint.answer === "closer" ? hiderMiles <= referenceMiles : hiderMiles >= referenceMiles;
     }
     case "tentacles": {
       const features = getCategoryFeatures(constraint.category);
@@ -187,6 +191,18 @@ export function canonicalAnswers(point: LngLat) {
   return {
     nearest: Object.fromEntries(
       (Object.keys(CATEGORY_LABELS) as Array<keyof typeof CATEGORY_LABELS>).map((category) => {
+        if (isLinearCategory(category)) {
+          const nearest = nearestLinearCategoryWithDistance(point, category);
+          return [
+            category,
+            nearest
+              ? {
+                  name: nearest.name,
+                  miles: nearest.miles,
+                }
+              : undefined,
+          ];
+        }
         const nearest = nearestFeatureWithDistance(point, getCategoryFeatures(category));
         return [
           category,
