@@ -25,6 +25,7 @@ Implemented:
   - district polygons for supervisorial district questions
 - Per-question overlay colors with editable color swatches in the question stack.
 - Question builder shows the possible answer set before asking.
+- Tentacles possible answers render as a colored Voronoi legend on the map and answer chips.
 - Question stack supports editing existing questions without duplicating them.
 - Map-based question setup uses draggable draft handles:
   - one draggable ask point for radar, matching, measuring, tentacles, and district questions

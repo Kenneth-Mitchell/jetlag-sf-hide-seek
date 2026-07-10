@@ -1,6 +1,6 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
-import { buildConstraintOverlays } from "../src/lib/constraintOverlays";
+import { buildConstraintOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
@@ -137,6 +137,32 @@ describe("constraint engine", () => {
     expect(overlays[0].color).toBe("#123456");
     expect(overlays[1].color).toBeTruthy();
     expect(overlays[1].color).not.toBe(overlays[0].color);
+  });
+
+  it("builds colored tentacles answer Voronoi previews", () => {
+    const museums = getCategoryFeatures("museums").slice(0, 3);
+    const overlays = buildTentacleAnswerPreviewOverlays(
+      {
+        id: "tentacle-preview",
+        kind: "tentacles",
+        label: "Tentacles",
+        point: vanNessMarket,
+        category: "museums",
+        selectedPoiId: museums[1].properties.id,
+        radiusMiles: 1.5,
+        enabled: true,
+        color: "#123456",
+      },
+      museums.map((feature, index) => ({
+        featureId: feature.properties.id,
+        color: ["#111111", "#222222", "#333333"][index],
+        selected: index === 1,
+      })),
+    );
+    const polygons = overlays.filter((overlay) => overlay.kind === "polygon");
+    expect(polygons).toHaveLength(3);
+    expect(polygons.map((overlay) => overlay.color)).toEqual(["#111111", "#333333", "#222222"]);
+    expect(overlays.some((overlay) => overlay.kind === "circle" && overlay.color === "#123456")).toBe(true);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

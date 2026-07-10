@@ -10,6 +10,7 @@ type MapViewProps = {
   eliminated: CandidateStation[];
   constraints: Constraint[];
   draftConstraint?: Constraint;
+  answerPreviewOverlays?: ConstraintOverlay[];
   onSelectPoint: (point: LngLat) => void;
   onDraftPointPreview?: (point: LngLat | null) => void;
   onDraftPointChange: (point: LngLat) => void;
@@ -47,6 +48,16 @@ function overlayStyle(mode: ConstraintOverlay["mode"], color = "#0f766e"): L.Pat
     weight: 2.2,
     fillColor: color,
     fillOpacity: 0.2,
+  };
+}
+
+function overlayPathOptions(overlay: ConstraintOverlay, mode: ConstraintOverlay["mode"] = overlay.mode): L.PathOptions {
+  const style = overlayStyle(mode, overlay.color);
+  return {
+    ...style,
+    dashArray: overlay.dashArray ?? style.dashArray,
+    fillOpacity: overlay.fillOpacity ?? style.fillOpacity,
+    weight: overlay.weight ?? style.weight,
   };
 }
 
@@ -198,6 +209,7 @@ export function MapView({
   eliminated,
   constraints,
   draftConstraint,
+  answerPreviewOverlays = [],
   onSelectPoint,
   onDraftPointPreview,
   onDraftPointChange,
@@ -258,7 +270,7 @@ export function MapView({
     for (const overlay of buildConstraintOverlays(constraints)) {
       if (overlay.kind === "circle") {
         L.circle([overlay.center.lat, overlay.center.lng], {
-          ...overlayStyle(overlay.mode, overlay.color),
+          ...overlayPathOptions(overlay),
           radius: milesToMeters(overlay.radiusMiles),
           interactive: false,
         }).addTo(group);
@@ -266,7 +278,7 @@ export function MapView({
         L.geoJSON(overlay.feature, {
           interactive: false,
           style: {
-            ...overlayStyle(overlay.mode, overlay.color),
+            ...overlayPathOptions(overlay),
             stroke: overlay.stroke ?? true,
           },
         }).addTo(group);
@@ -274,7 +286,7 @@ export function MapView({
         L.polyline(
           overlay.coordinates.map((coordinate) => [coordinate.lat, coordinate.lng]),
           {
-            ...overlayStyle(overlay.mode, overlay.color),
+            ...overlayPathOptions(overlay),
             interactive: false,
           },
         ).addTo(group);
@@ -288,13 +300,18 @@ export function MapView({
     group.clearLayers();
     if (!draftConstraint) return;
     const previewConstraint = withDraftDragPreview(draftConstraint, draftDragPoint, thermometerDrag);
-    const voronoiPreview = draftDragPoint ? buildVoronoiPreviewOverlays(previewConstraint) : [];
-    const overlays = voronoiPreview.length > 0 ? voronoiPreview : buildConstraintOverlays([previewConstraint]);
+    const voronoiPreview = draftDragPoint && answerPreviewOverlays.length === 0 ? buildVoronoiPreviewOverlays(previewConstraint) : [];
+    const overlays =
+      answerPreviewOverlays.length > 0
+        ? answerPreviewOverlays
+        : voronoiPreview.length > 0
+          ? voronoiPreview
+          : buildConstraintOverlays([previewConstraint]);
     for (const overlay of overlays) {
       const mode = overlay.mode === "reference" ? "reference" : overlay.mode;
       if (overlay.kind === "circle") {
         L.circle([overlay.center.lat, overlay.center.lng], {
-          ...overlayStyle(mode, overlay.color),
+          ...overlayPathOptions(overlay, mode),
           radius: milesToMeters(overlay.radiusMiles),
           interactive: false,
         }).addTo(group);
@@ -302,23 +319,23 @@ export function MapView({
         L.geoJSON(overlay.feature, {
           interactive: false,
           style: {
-            ...overlayStyle(mode, overlay.color),
+            ...overlayPathOptions(overlay, mode),
             stroke: overlay.stroke ?? true,
-            weight: 3,
+            weight: overlay.weight ?? 3,
           },
         }).addTo(group);
       } else {
         L.polyline(
           overlay.coordinates.map((coordinate) => [coordinate.lat, coordinate.lng]),
           {
-            ...overlayStyle(mode, overlay.color),
-            weight: 3,
+            ...overlayPathOptions(overlay, mode),
+            weight: overlay.weight ?? 3,
             interactive: false,
           },
         ).addTo(group);
       }
     }
-  }, [draftConstraint, draftDragPoint, thermometerDrag]);
+  }, [answerPreviewOverlays, draftConstraint, draftDragPoint, thermometerDrag]);
 
   useEffect(() => {
     const map = mapRef.current;

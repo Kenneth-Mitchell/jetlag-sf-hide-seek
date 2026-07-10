@@ -1,7 +1,8 @@
 import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
-import { constraintColor, nextQuestionColor } from "./lib/colors";
+import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
+import { buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { distanceMiles, lngLatFromFeature, nearestFeature } from "./lib/geo";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
@@ -58,6 +59,9 @@ function lineOptions(): string[] {
 type AnswerOption = {
   label: string;
   detail?: string;
+  color?: string;
+  selected?: boolean;
+  value?: string;
 };
 
 export function App() {
@@ -119,6 +123,17 @@ export function App() {
   );
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
   const lines = useMemo(lineOptions, []);
+  const liveSelectedPoiId = questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId;
+  const tentacleAnswerLegend = useMemo(
+    () =>
+      tentacleAnswerFeatures.map(({ feature, miles }, index) => ({
+        color: answerColor(index),
+        feature,
+        miles,
+        selected: feature.properties.id === liveSelectedPoiId,
+      })),
+    [liveSelectedPoiId, tentacleAnswerFeatures],
+  );
   const questionDraft = useMemo(
     () =>
       formatQuestionDraft({
@@ -207,6 +222,17 @@ export function App() {
         : constraints,
     [constraints, editingConstraint],
   );
+  const answerPreviewOverlays = useMemo(() => {
+    if (questionKind !== "tentacles" || liveDraftConstraint.kind !== "tentacles") return [];
+    return buildTentacleAnswerPreviewOverlays(
+      liveDraftConstraint,
+      tentacleAnswerLegend.map(({ color, feature, selected }) => ({
+        color,
+        featureId: feature.properties.id,
+        selected,
+      })),
+    );
+  }, [liveDraftConstraint, questionKind, tentacleAnswerLegend]);
   const candidates = useMemo(() => applyConstraints(previewConstraints), [previewConstraints]);
   const answerOptions = useMemo<AnswerOption[]>(() => {
     if (questionKind === "radius") {
@@ -243,12 +269,13 @@ export function App() {
       if (tentacleAnswerFeatures.length === 0) {
         return [{ label: "No listed POIs", detail: `within ${tentacleRadius.toFixed(1)} mi` }];
       }
-      const shown = tentacleAnswerFeatures.slice(0, 8).map(({ feature, miles }) => ({
+      return tentacleAnswerLegend.map(({ color, feature, miles, selected }) => ({
         label: String(feature.properties.name),
         detail: `${miles.toFixed(2)} mi`,
+        color,
+        selected,
+        value: feature.properties.id,
       }));
-      const remaining = tentacleAnswerFeatures.length - shown.length;
-      return remaining > 0 ? [...shown, { label: `+${remaining} more`, detail: "scroll category list if needed" }] : shown;
     }
     if (questionKind === "district") {
       return [
@@ -260,7 +287,7 @@ export function App() {
       { label: "Yes", detail: `${transitLine || "line"} stops in hiding zone` },
       { label: "No", detail: `${transitLine || "line"} does not stop there` },
     ];
-  }, [category, categoryFeatures, liveSelectedPoint, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures, tentacleRadius, transitLine]);
+  }, [category, categoryFeatures, liveSelectedPoint, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
@@ -521,6 +548,7 @@ export function App() {
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
           constraints={appliedMapConstraints}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
+          answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
           onSelectPoint={handleMapPointSelect}
           onDraftPointPreview={previewDraftPoint}
           onDraftPointChange={moveDraftPoint}
@@ -659,13 +687,13 @@ export function App() {
                     <label>
                       Hider answer
                       <select
-                        value={tentacleAnswerFeatures.some(({ feature }) => feature.properties.id === selectedPoiId) ? selectedPoiId : ""}
+                        value={tentacleAnswerFeatures.some(({ feature }) => feature.properties.id === liveSelectedPoiId) ? liveSelectedPoiId : ""}
                         onChange={(event) => setSelectedPoiId(event.target.value)}
                         disabled={tentacleAnswerFeatures.length === 0}
                       >
                         {tentacleAnswerFeatures.length === 0 && <option value="">No POIs in range</option>}
-                        {tentacleAnswerFeatures.map(({ feature, miles }) => (
-                          <option key={feature.properties.id} value={feature.properties.id}>
+                        {tentacleAnswerLegend.map(({ color, feature, miles }) => (
+                          <option key={feature.properties.id} value={feature.properties.id} style={{ color }}>
                             {feature.properties.name} ({miles.toFixed(2)} mi)
                           </option>
                         ))}
@@ -707,12 +735,31 @@ export function App() {
                   <span>{answerOptions.length}</span>
                 </div>
                 <div className="answer-chip-list">
-                  {answerOptions.map((option) => (
-                    <span key={`${option.label}-${option.detail}`} className="answer-chip">
-                      <strong>{option.label}</strong>
-                      {option.detail && <em>{option.detail}</em>}
-                    </span>
-                  ))}
+                  {answerOptions.map((option) => {
+                    const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
+                    const content = (
+                      <>
+                        {option.color && <i className="answer-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />}
+                        <strong>{option.label}</strong>
+                        {option.detail && <em>{option.detail}</em>}
+                      </>
+                    );
+                    return option.value ? (
+                      <button
+                        key={`${option.label}-${option.detail}`}
+                        type="button"
+                        className={`answer-chip${option.selected ? " selected-answer" : ""}`}
+                        style={chipStyle}
+                        onClick={() => setSelectedPoiId(option.value ?? "")}
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <span key={`${option.label}-${option.detail}`} className="answer-chip" style={chipStyle}>
+                        {content}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -11,20 +11,35 @@ export type ConstraintOverlay =
       radiusMiles: number;
       mode: "keep" | "exclude" | "reference";
       color?: string;
+      dashArray?: string;
+      fillOpacity?: number;
+      weight?: number;
     }
   | {
       kind: "polygon";
       feature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
       mode: "keep" | "exclude" | "reference";
       color?: string;
+      dashArray?: string;
+      fillOpacity?: number;
       stroke?: boolean;
+      weight?: number;
     }
   | {
       kind: "line";
       coordinates: LngLat[];
       mode: "keep" | "exclude" | "reference";
       color?: string;
+      dashArray?: string;
+      fillOpacity?: number;
+      weight?: number;
     };
+
+export type TentacleAnswerPreview = {
+  featureId: string;
+  color: string;
+  selected: boolean;
+};
 
 function overlayBbox(): [number, number, number, number] {
   const [west, south, east, north] = turf.bbox(snapshot.geometries.playableArea);
@@ -288,6 +303,40 @@ export function buildVoronoiPreviewOverlays(constraint: Constraint): ConstraintO
       radiusMiles: constraint.radiusMiles,
       mode: "reference" as const,
       color: constraint.color,
+    },
+  ];
+}
+
+export function buildTentacleAnswerPreviewOverlays(
+  constraint: Extract<Constraint, { kind: "tentacles" }>,
+  answers: TentacleAnswerPreview[],
+): ConstraintOverlay[] {
+  const features = getCategoryFeatures(constraint.category);
+  const cells = answers.flatMap((answer): Array<ConstraintOverlay & { selected: boolean }> => {
+    const cell = voronoiCellFor(features, answer.featureId);
+    if (!cell) return [];
+    return [
+      {
+        kind: "polygon",
+        feature: cell,
+        mode: "keep",
+        color: answer.color,
+        fillOpacity: answer.selected ? 0.22 : 0.14,
+        weight: answer.selected ? 3.4 : 2,
+        selected: answer.selected,
+      },
+    ];
+  });
+  return [
+    ...cells.filter((cell) => !cell.selected).map(({ selected: _selected, ...cell }) => cell),
+    ...cells.filter((cell) => cell.selected).map(({ selected: _selected, ...cell }) => cell),
+    {
+      kind: "circle",
+      center: constraint.point,
+      radiusMiles: constraint.radiusMiles,
+      mode: "reference",
+      color: constraint.color,
+      weight: 2.4,
     },
   ];
 }
