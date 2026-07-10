@@ -1,5 +1,5 @@
-import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Share2, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Check, Clipboard, Crosshair, Eye, EyeOff, Layers, ListChecks, MapPin, Pencil, RotateCcw, Share2, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
@@ -128,14 +128,37 @@ export function App() {
     appliedQuestions: true,
     answerRegions: true,
   });
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [importText, setImportText] = useState("");
   const [showImportPanel, setShowImportPanel] = useState(false);
+  const layerControlRef = useRef<HTMLDivElement | null>(null);
   const hasActiveQuestion = questionKind !== "none";
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
   }, [constraints]);
+
+  useEffect(() => {
+    if (!showLayerMenu) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && layerControlRef.current?.contains(target)) return;
+      setShowLayerMenu(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowLayerMenu(false);
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showLayerMenu]);
 
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
   const liveThermoFrom = thermoFromPreview ?? thermoFrom;
@@ -822,6 +845,39 @@ export function App() {
           onThermoToPreview={previewThermoTo}
           onThermoToChange={moveThermoTo}
         />
+        <div className="map-layer-control" ref={layerControlRef}>
+          <button
+            type="button"
+            className={`map-layer-button${showLayerMenu ? " active" : ""}`}
+            onClick={() => setShowLayerMenu((current) => !current)}
+            aria-label="Map layers"
+            aria-expanded={showLayerMenu}
+            aria-controls="map-layer-menu"
+            title="Map layers"
+          >
+            <Layers size={18} />
+          </button>
+          {showLayerMenu && (
+            <div id="map-layer-menu" className="map-layer-menu" role="menu" aria-label="Map layers">
+              <strong>Map layers</strong>
+              {MAP_LAYER_LABELS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`map-layer-option${mapLayers[key] ? " active" : ""}`}
+                  onClick={() => toggleMapLayer(key)}
+                  role="menuitemcheckbox"
+                  aria-checked={mapLayers[key]}
+                >
+                  <span className="map-layer-check" aria-hidden="true">
+                    {mapLayers[key] && <Check size={14} />}
+                  </span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="control-pane">
@@ -853,21 +909,6 @@ export function App() {
           </button>
         </div>
         {locationStatus && <p className="status-line">{locationStatus}</p>}
-
-        <section className="layer-toggle-row" aria-label="Map visibility">
-          <span>Show on map</span>
-          {MAP_LAYER_LABELS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              className={mapLayers[key] ? "active" : ""}
-              onClick={() => toggleMapLayer(key)}
-              aria-pressed={mapLayers[key]}
-            >
-              {label}
-            </button>
-          ))}
-        </section>
 
         {mode === "seeker" && (
           <div className="panel-stack">
