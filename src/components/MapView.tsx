@@ -86,6 +86,12 @@ function pointFromPointer(map: L.Map, event: PointerEvent): LngLat {
   return { lat: latlng.lat, lng: latlng.lng };
 }
 
+function clampMapMinZoom(map: L.Map, bounds: L.LatLngBounds) {
+  const minZoom = map.getBoundsZoom(bounds, false, L.point(12, 12));
+  map.setMinZoom(minZoom);
+  if (map.getZoom() < minZoom) map.setZoom(minZoom, { animate: false });
+}
+
 function withDraftDragPreview(
   constraint: Constraint,
   draftDragPoint: LngLat | null,
@@ -239,14 +245,16 @@ export function MapView({
     const map = L.map(elementRef.current, {
       zoomControl: false,
       attributionControl: false,
+      maxBoundsViscosity: 0.9,
     }).setView([vanNessMarket.lat, vanNessMarket.lng], 12);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.control.attribution({ position: "bottomleft" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
+      noWrap: true,
       attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
-    L.geoJSON(snapshot.geometries.playableArea, {
+    const playableLayer = L.geoJSON(snapshot.geometries.playableArea, {
       interactive: false,
       style: {
         color: "#111827",
@@ -255,6 +263,13 @@ export function MapView({
         fillOpacity: 0.08,
       },
     }).addTo(map);
+    const gameBounds = playableLayer.getBounds();
+    const viewBounds = gameBounds.pad(0.04);
+    const panBounds = gameBounds.pad(0.18);
+    map.fitBounds(viewBounds, { animate: false, padding: [12, 12] });
+    map.setMaxBounds(panBounds);
+    clampMapMinZoom(map, viewBounds);
+    map.on("resize", () => clampMapMinZoom(map, viewBounds));
     const layers = L.layerGroup().addTo(map);
     layersRef.current = layers;
     appliedConstraintRef.current = L.layerGroup().addTo(map);

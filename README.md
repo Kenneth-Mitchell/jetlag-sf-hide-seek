@@ -7,6 +7,7 @@ Mobile-first local web app for the San Francisco homebrew *Jet Lag: Hide & Seek*
 Implemented:
 
 - Vite + React + TypeScript app with Leaflet map UI.
+- Map view is constrained to the San Francisco playable area with padded game bounds.
 - Build-time workbook ingestion from `JLH&S Sheets San Francisco.xlsx`.
 - Generated snapshot with authoritative curated tabs:
   - 193 valid hiding stations
