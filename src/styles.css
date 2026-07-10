@@ -153,6 +153,39 @@ button:disabled {
   color: #ffffff;
 }
 
+.map-layer-color {
+  display: grid;
+  gap: 5px;
+  padding: 6px 4px 2px;
+  border-top: 1px solid #edf1ef;
+}
+
+.map-layer-color > span {
+  color: #344543;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.map-layer-color-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.map-layer-color-control input[type="color"] {
+  width: 34px;
+  min-height: 30px;
+  height: 30px;
+  padding: 2px;
+}
+
+.map-layer-color-control strong {
+  color: #65736f;
+  font-size: 0.72rem;
+  letter-spacing: 0;
+}
+
 .drag-handle {
   display: grid;
   place-items: center;

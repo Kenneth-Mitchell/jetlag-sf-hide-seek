@@ -16,6 +16,7 @@ type MapViewProps = {
   showCurrentQuestion: boolean;
   showAppliedQuestions: boolean;
   showAnswerRegions: boolean;
+  stationColor: string;
   onSelectPoint: (point: LngLat) => void;
   onDraftPointPreview?: (point: LngLat | null) => void;
   onDraftPointChange: (point: LngLat) => void;
@@ -235,6 +236,7 @@ export function MapView({
   showCurrentQuestion,
   showAppliedQuestions,
   showAnswerRegions,
+  stationColor,
   onSelectPoint,
   onDraftPointPreview,
   onDraftPointChange,
@@ -569,14 +571,14 @@ export function MapView({
       const [lng, lat] = station.geometry.coordinates;
       L.circle([lat, lng], {
         radius: milesToMeters(snapshot.hideRadiusMiles),
-        color: "#0f766e",
+        color: stationColor,
         weight: 1.5,
-        fillColor: "#14b8a6",
+        fillColor: stationColor,
         fillOpacity: candidates.length <= 40 ? 0.24 : 0.13,
         interactive: false,
       }).addTo(layers);
     }
-  }, [candidates, eliminated, showStations]);
+  }, [candidates, eliminated, showStations, stationColor]);
 
   return <div ref={elementRef} className="leaflet-host" />;
 }

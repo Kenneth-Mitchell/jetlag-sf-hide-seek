@@ -34,7 +34,9 @@ type ActiveQuestionKind = Constraint["kind"];
 type QuestionKind = "none" | ActiveQuestionKind;
 
 const STORAGE_KEY = "jetlag-sf-constraints-v1";
+const STATION_COLOR_KEY = "jetlag-sf-station-circle-color-v1";
 const COMPACT_VORONOI_ANSWER_LIMIT = 6;
+const DEFAULT_STATION_COLOR = "#0f766e";
 
 type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
 
@@ -113,6 +115,15 @@ function decodeMapState(value: string): SavedMapState {
   return Array.isArray(parsed) ? { version: 1, constraints: parsed } : parsed;
 }
 
+function readSavedStationColor(): string {
+  try {
+    const saved = window.localStorage.getItem(STATION_COLOR_KEY);
+    return saved && /^#[0-9a-f]{6}$/i.test(saved) ? saved : DEFAULT_STATION_COLOR;
+  } catch {
+    return DEFAULT_STATION_COLOR;
+  }
+}
+
 export function App() {
   const [mode, setMode] = useState<Mode>("seeker");
   const [selectedPoint, setSelectedPoint] = useState<LngLat>(vanNessMarket);
@@ -145,6 +156,7 @@ export function App() {
     appliedQuestions: true,
     answerRegions: true,
   });
+  const [stationColor, setStationColor] = useState(readSavedStationColor);
   const [mapFocus, setMapFocus] = useState(false);
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
@@ -156,6 +168,10 @@ export function App() {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
   }, [constraints]);
+
+  useEffect(() => {
+    window.localStorage.setItem(STATION_COLOR_KEY, stationColor);
+  }, [stationColor]);
 
   useEffect(() => {
     if (!showLayerMenu) return;
@@ -864,6 +880,7 @@ export function App() {
           showCurrentQuestion={mapLayers.currentQuestion}
           showAppliedQuestions={mapLayers.appliedQuestions}
           showAnswerRegions={mapLayers.answerRegions}
+          stationColor={stationColor}
           onSelectPoint={handleMapPointSelect}
           onDraftPointPreview={previewDraftPoint}
           onDraftPointChange={moveDraftPoint}
@@ -895,7 +912,7 @@ export function App() {
             <Layers size={18} />
           </button>
           {showLayerMenu && (
-            <div id="map-layer-menu" className="map-layer-menu" role="menu" aria-label="Map layers">
+            <div id="map-layer-menu" className="map-layer-menu" role="dialog" aria-label="Map layers">
               <strong>Map layers</strong>
               {MAP_LAYER_LABELS.map(({ key, label }) => (
                 <button
@@ -903,8 +920,7 @@ export function App() {
                   type="button"
                   className={`map-layer-option${mapLayers[key] ? " active" : ""}`}
                   onClick={() => toggleMapLayer(key)}
-                  role="menuitemcheckbox"
-                  aria-checked={mapLayers[key]}
+                  aria-pressed={mapLayers[key]}
                 >
                   <span className="map-layer-check" aria-hidden="true">
                     {mapLayers[key] && <Check size={14} />}
@@ -912,6 +928,18 @@ export function App() {
                   <span>{label}</span>
                 </button>
               ))}
+              <label className="map-layer-color">
+                <span>Station color</span>
+                <span className="map-layer-color-control">
+                  <input
+                    type="color"
+                    value={stationColor}
+                    onChange={(event) => setStationColor(event.target.value)}
+                    aria-label="Station circle color"
+                  />
+                  <strong>{stationColor.toUpperCase()}</strong>
+                </span>
+              </label>
             </div>
           )}
         </div>
