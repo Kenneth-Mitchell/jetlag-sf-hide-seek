@@ -83,6 +83,7 @@ export function App() {
   const [tentacleRadius, setTentacleRadius] = useState(1.5);
   const [selectedPoiId, setSelectedPoiId] = useState("");
   const [transitLine, setTransitLine] = useState("N");
+  const [transitLineSearch, setTransitLineSearch] = useState("");
   const [dataCategory, setDataCategory] = useState<CategoryKey>("museums");
   const [locationStatus, setLocationStatus] = useState("");
   const [editingConstraintId, setEditingConstraintId] = useState<string | null>(null);
@@ -127,6 +128,11 @@ export function App() {
   );
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
   const lines = useMemo(allTransitLineOptions, []);
+  const filteredTransitLines = useMemo(() => {
+    const query = transitLineSearch.trim().toLowerCase();
+    if (!query) return lines;
+    return lines.filter((line) => line.toLowerCase().includes(query));
+  }, [lines, transitLineSearch]);
   const liveSelectedPoiId = questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId;
   const tentacleAnswerLegend = useMemo(
     () =>
@@ -402,6 +408,11 @@ export function App() {
       .filter((item) => item.miles <= tentacleRadius)
       .sort((a, b) => a.miles - b.miles)[0]?.feature;
     return nearestInRange?.properties.id ?? nearestFeature(point, categoryFeatures)?.properties.id ?? "";
+  }
+
+  function selectTransitLine(line: string) {
+    setTransitLine(line);
+    setTransitLineSearch("");
   }
 
   function buildDraftConstraint({
@@ -837,15 +848,42 @@ export function App() {
 
                 {questionKind === "transit-line" && (
                   <>
-                    <label>
-                      Line
-                      <input list="line-options" value={transitLine} onChange={(event) => setTransitLine(event.target.value)} />
-                      <datalist id="line-options">
-                        {lines.map((line) => (
-                          <option key={line} value={line} />
+                    <div className="transit-line-field">
+                      <label>
+                        Line
+                        <input
+                          type="search"
+                          value={transitLineSearch}
+                          placeholder={`Selected: ${transitLine}`}
+                          onChange={(event) => setTransitLineSearch(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && filteredTransitLines[0]) {
+                              event.preventDefault();
+                              selectTransitLine(filteredTransitLines[0]);
+                            }
+                          }}
+                        />
+                      </label>
+                      <div className="selected-transit-line">
+                        <span>Selected</span>
+                        <strong>{transitLine}</strong>
+                        <em>{transitStopCount > 0 ? `${transitStopCount} route points` : "no route points"}</em>
+                      </div>
+                      <div className="transit-line-picker" role="listbox" aria-label="Transit line">
+                        {filteredTransitLines.map((line) => (
+                          <button
+                            key={line}
+                            type="button"
+                            className={line === transitLine ? "selected-line" : ""}
+                            onClick={() => selectTransitLine(line)}
+                            aria-selected={line === transitLine}
+                          >
+                            {line}
+                          </button>
                         ))}
-                      </datalist>
-                    </label>
+                        {filteredTransitLines.length === 0 && <span>No routes found</span>}
+                      </div>
+                    </div>
                     <Segmented value={yesNoAnswer} onChange={setYesNoAnswer} options={["yes", "no"]} />
                   </>
                 )}

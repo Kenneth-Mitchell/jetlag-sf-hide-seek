@@ -264,9 +264,86 @@ textarea {
   color: #101820;
 }
 
+input[type="search"] {
+  appearance: none;
+}
+
 textarea {
   resize: vertical;
   line-height: 1.35;
+}
+
+.transit-line-field {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
+.transit-line-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+  gap: 6px;
+  max-height: 142px;
+  overflow: auto;
+  padding: 7px;
+  border: 1px solid #d9e2df;
+  border-radius: 8px;
+  background: #f8fbfa;
+}
+
+.selected-transit-line {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid #d9e2df;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.selected-transit-line span,
+.selected-transit-line em {
+  color: #65736f;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.selected-transit-line strong {
+  min-width: 42px;
+  color: #101820;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.transit-line-picker button {
+  min-height: 34px;
+  padding: 6px 8px;
+  border-color: #d4dfdc;
+  border-radius: 8px;
+  background: #fff;
+  color: #101820;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.transit-line-picker button:hover {
+  border-color: #64748b;
+}
+
+.transit-line-picker button.selected-line {
+  border-color: #101820;
+  background: #101820;
+  color: #fff;
+}
+
+.transit-line-picker span {
+  grid-column: 1 / -1;
+  padding: 8px;
+  color: #65736f;
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .primary-action {
