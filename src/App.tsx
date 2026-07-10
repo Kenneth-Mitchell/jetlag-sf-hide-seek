@@ -1310,19 +1310,34 @@ function AnswerRow({ label, value }: { label: string; value: string }) {
 }
 
 function CandidateList({ candidates }: { candidates: PointFeature[] }) {
+  const [search, setSearch] = useState("");
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleCandidates = useMemo(() => {
+    if (!normalizedSearch) return candidates;
+    return candidates.filter((station) => {
+      const system = station.properties.primary_system ? String(station.properties.primary_system) : station.properties.sourceSheet;
+      return `${station.properties.name} ${system}`.toLowerCase().includes(normalizedSearch);
+    });
+  }, [candidates, normalizedSearch]);
+
   return (
     <section className="tool-panel">
       <div className="section-heading">
         <h2>Remaining Stations</h2>
-        <span>{candidates.length}</span>
+        <span>{normalizedSearch ? `${visibleCandidates.length}/${candidates.length}` : candidates.length}</span>
       </div>
+      <label className="station-search">
+        Search stations
+        <input type="search" value={search} placeholder="Powell, BART, N Judah..." onChange={(event) => setSearch(event.target.value)} />
+      </label>
       <div className="candidate-list">
-        {candidates.map((station) => (
+        {visibleCandidates.map((station) => (
           <article key={station.properties.id}>
             <strong>{station.properties.name}</strong>
             <span>{station.properties.primary_system ? String(station.properties.primary_system) : station.properties.sourceSheet}</span>
           </article>
         ))}
+        {visibleCandidates.length === 0 && <p className="empty">No stations match that search.</p>}
       </div>
     </section>
   );

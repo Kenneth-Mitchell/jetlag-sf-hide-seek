@@ -694,6 +694,12 @@ button.answer-chip:hover {
   border-left: 1px solid #edf1ef;
 }
 
+.candidate-list article strong,
+.data-list article strong {
+  min-width: 0;
+  line-height: 1.18;
+}
+
 .muted-row {
   opacity: 0.55;
 }
@@ -744,23 +750,18 @@ button.answer-chip:hover {
   }
 
   .control-pane {
+    gap: 10px;
+    padding: 10px;
     padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
 
-  .layer-toggle-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .tool-panel {
+    gap: 10px;
+    padding: 10px;
   }
 
-  .layer-toggle-row span {
-    grid-column: 1 / -1;
-  }
-
-  .app-header {
-    display: grid;
-  }
-
-  .field-grid {
-    grid-template-columns: 1fr;
+  h1 {
+    font-size: 1.55rem;
   }
 
   .mode-tabs {
@@ -769,6 +770,51 @@ button.answer-chip:hover {
 
   .mode-tabs button {
     flex: 1;
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 0.92rem;
+    font-weight: 750;
+  }
+
+  .point-strip {
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: 0.84rem;
+  }
+
+  .point-strip svg {
+    flex: 0 0 auto;
+  }
+
+  .point-strip .icon-text-button {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 0.88rem;
+  }
+
+  .layer-toggle-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .layer-toggle-row span {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+  }
+
+  .layer-toggle-row button {
+    min-height: 34px;
+    padding: 4px 6px;
+    font-size: 0.72rem;
+  }
+
+  .app-header {
+    display: grid;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
   }
 
   .question-preview {
@@ -799,5 +845,50 @@ button.answer-chip:hover {
   .stack-heading .button-row {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .stack-heading .icon-text-button {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 0.88rem;
+  }
+
+  .stack-heading .square-icon-button {
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  .composer-empty {
+    padding: 10px;
+  }
+
+  .composer-empty strong {
+    font-size: 0.95rem;
+  }
+
+  .composer-empty span {
+    font-size: 0.8rem;
+  }
+
+  .candidate-list,
+  .data-list {
+    max-height: 42vh;
+  }
+
+  .candidate-list article,
+  .data-list article {
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .candidate-list article strong,
+  .data-list article strong {
+    font-size: 0.92rem;
+  }
+
+  .candidate-list article span,
+  .data-list article span {
+    font-size: 0.78rem;
   }
 }
