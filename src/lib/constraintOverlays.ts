@@ -42,6 +42,12 @@ export type TentacleAnswerPreview = {
   selected: boolean;
 };
 
+export type MatchingAnswerPreview = {
+  featureId: string;
+  color: string;
+  selected: boolean;
+};
+
 export type DistrictAnswerPreview = {
   district: string;
   color: string;
@@ -344,6 +350,33 @@ export function buildTentacleAnswerPreviewOverlays(
   ];
 }
 
+export function buildMatchingAnswerPreviewOverlays(
+  constraint: Extract<Constraint, { kind: "matching" }>,
+  answers: MatchingAnswerPreview[],
+): ConstraintOverlay[] {
+  const features = getCategoryFeatures(constraint.category);
+  const cells = answers.flatMap((answer): Array<ConstraintOverlay & { selected: boolean }> => {
+    const cell = voronoiCellFor(features, answer.featureId);
+    if (!cell) return [];
+    return [
+      {
+        kind: "polygon",
+        feature: cell,
+        mode: "keep",
+        color: answer.color,
+        fillOpacity: answer.selected ? 0.22 : 0.1,
+        weight: answer.selected ? 3.4 : 1.5,
+        selected: answer.selected,
+      },
+    ];
+  });
+
+  return [
+    ...cells.filter((cell) => !cell.selected).map(({ selected: _selected, ...cell }) => cell),
+    ...cells.filter((cell) => cell.selected).map(({ selected: _selected, ...cell }) => cell),
+  ];
+}
+
 export function buildDistrictAnswerPreviewOverlays(answers: DistrictAnswerPreview[]): ConstraintOverlay[] {
   const answerByDistrict = new Map(answers.map((answer) => [answer.district, answer]));
   const cells = supervisorDistrictFeatures().flatMap((feature): Array<ConstraintOverlay & { selected: boolean }> => {
@@ -356,8 +389,8 @@ export function buildDistrictAnswerPreviewOverlays(answers: DistrictAnswerPrevie
         feature,
         mode: "keep",
         color: answer.color,
-        fillOpacity: answer.selected ? 0.23 : 0.14,
-        weight: answer.selected ? 3.4 : 1.9,
+        fillOpacity: answer.selected ? 0.22 : 0.1,
+        weight: answer.selected ? 3.4 : 1.5,
         selected: answer.selected,
       },
     ];

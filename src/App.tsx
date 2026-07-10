@@ -2,7 +2,7 @@ import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCc
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
-import { buildDistrictAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
+import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./lib/districts";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
@@ -148,6 +148,20 @@ export function App() {
       })),
     [liveSelectedPoiId, tentacleAnswerFeatures],
   );
+  const matchingAnswerLegend = useMemo(
+    () =>
+      categoryFeatures.map((feature, index) => {
+        const miles = distanceMiles(liveSelectedPoint, lngLatFromFeature(feature));
+        const selected = feature.properties.id === nearestPoi?.properties.id;
+        return {
+          color: answerColor(index),
+          feature,
+          miles,
+          selected,
+        };
+      }),
+    [categoryFeatures, liveSelectedPoint, nearestPoi],
+  );
   const liveDistrictNumber = districtNumberAtPoint(liveSelectedPoint);
   const districtAnswerLegend = useMemo(
     () =>
@@ -253,6 +267,16 @@ export function App() {
     [constraints, editingConstraint],
   );
   const answerPreviewOverlays = useMemo(() => {
+    if (questionKind === "matching" && liveDraftConstraint.kind === "matching") {
+      return buildMatchingAnswerPreviewOverlays(
+        liveDraftConstraint,
+        matchingAnswerLegend.map(({ color, feature, selected }) => ({
+          color,
+          featureId: feature.properties.id,
+          selected,
+        })),
+      );
+    }
     if (questionKind === "tentacles" && liveDraftConstraint.kind === "tentacles") {
       return buildTentacleAnswerPreviewOverlays(
         liveDraftConstraint,
@@ -273,7 +297,7 @@ export function App() {
       );
     }
     return [];
-  }, [districtAnswerLegend, liveDraftConstraint, questionKind, tentacleAnswerLegend]);
+  }, [districtAnswerLegend, liveDraftConstraint, matchingAnswerLegend, questionKind, tentacleAnswerLegend]);
   const candidates = useMemo(() => applyConstraints(previewConstraints), [previewConstraints]);
   const answerOptions = useMemo<AnswerOption[]>(() => {
     if (questionKind === "radius") {
@@ -290,12 +314,12 @@ export function App() {
       ];
     }
     if (questionKind === "matching") {
-      const nearest = nearestFeature(liveSelectedPoint, categoryFeatures);
-      const noun = CATEGORY_LABELS[category].toLowerCase();
-      return [
-        { label: "Yes", detail: nearest ? `same nearest ${noun}: ${nearest.properties.name}` : `same nearest ${noun}` },
-        { label: "No", detail: `different nearest ${noun}` },
-      ];
+      return matchingAnswerLegend.map(({ color, feature, miles, selected }) => ({
+        label: String(feature.properties.name),
+        detail: selected ? `${miles.toFixed(2)} mi · my nearest` : `${miles.toFixed(2)} mi`,
+        color,
+        selected,
+      }));
     }
     if (questionKind === "measuring") {
       const nearest = nearestPoi;
@@ -330,7 +354,7 @@ export function App() {
       { label: "Yes", detail: `${transitLine || "line"} stops in hiding zone` },
       { label: "No", detail: `${transitLine || "line"} does not stop there` },
     ];
-  }, [category, categoryFeatures, districtAnswerLegend, liveSelectedPoint, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine]);
+  }, [category, districtAnswerLegend, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);

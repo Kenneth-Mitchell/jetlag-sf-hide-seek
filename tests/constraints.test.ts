@@ -1,7 +1,7 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
 import { ANSWER_COLORS, QUESTION_COLORS, answerColor, nextQuestionColor } from "../src/lib/colors";
-import { buildConstraintOverlays, buildDistrictAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
+import { buildConstraintOverlays, buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { districtNumberFromFeature, supervisorDistrictFeatures } from "../src/lib/districts";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
@@ -173,6 +173,33 @@ describe("constraint engine", () => {
     expect(polygons).toHaveLength(3);
     expect(polygons.map((overlay) => overlay.color)).toEqual(["#111111", "#333333", "#222222"]);
     expect(overlays.some((overlay) => overlay.kind === "circle" && overlay.color === "#123456")).toBe(true);
+  });
+
+  it("builds colored matching Voronoi previews with the selected cell last", () => {
+    const museums = getCategoryFeatures("museums");
+    const overlays = buildMatchingAnswerPreviewOverlays(
+      {
+        id: "matching-preview",
+        kind: "matching",
+        label: "Matching",
+        point: vanNessMarket,
+        category: "museums",
+        answer: "yes",
+        enabled: true,
+        color: "#123456",
+      },
+      museums.map((feature, index) => ({
+        featureId: feature.properties.id,
+        color: answerColor(index),
+        selected: index === 2,
+      })),
+    );
+    const polygons = overlays.filter((overlay) => overlay.kind === "polygon");
+    expect(polygons).toHaveLength(museums.length);
+    expect(new Set(polygons.map((overlay) => overlay.color)).size).toBeGreaterThan(10);
+    expect(polygons.at(-1)?.color).toBe(answerColor(2));
+    expect(polygons.at(-1)?.weight).toBeGreaterThan(polygons[0].weight ?? 0);
+    expect(polygons[0].fillOpacity).toBeLessThan(polygons.at(-1)?.fillOpacity ?? 0);
   });
 
   it("builds colored supervisorial district previews", () => {
