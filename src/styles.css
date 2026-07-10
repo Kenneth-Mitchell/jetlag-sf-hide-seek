@@ -66,14 +66,15 @@ button:disabled {
 .drag-handle {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
+  margin: 5px;
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: var(--handle-color);
   color: #ffffff;
-  box-shadow: 0 3px 9px rgb(16 24 32 / 0.24);
-  font-size: 0.6rem;
+  box-shadow: 0 2px 7px rgb(16 24 32 / 0.24);
+  font-size: 0.46rem;
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
@@ -88,8 +89,8 @@ button:disabled {
 
 .drag-handle-dot::after {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 4px;
+  height: 4px;
   border-radius: 999px;
   background: #ffffff;
   box-shadow: 0 0 0 2px rgb(255 255 255 / 0.45);
@@ -102,16 +103,17 @@ button:disabled {
 .hider-location-marker {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
+  margin: 3px;
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: #db2777;
   color: #ffffff;
   box-shadow:
     0 0 0 2px rgb(219 39 119 / 0.3),
-    0 3px 9px rgb(16 24 32 / 0.22);
-  font-size: 0.58rem;
+    0 2px 7px rgb(16 24 32 / 0.22);
+  font-size: 0.46rem;
   font-weight: 900;
   line-height: 1;
 }
