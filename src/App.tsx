@@ -1,4 +1,4 @@
-import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Trash2, X } from "lucide-react";
+import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Share2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
@@ -130,6 +130,7 @@ export function App() {
   });
   const [shareStatus, setShareStatus] = useState("");
   const [importText, setImportText] = useState("");
+  const [showImportPanel, setShowImportPanel] = useState(false);
   const hasActiveQuestion = questionKind !== "none";
 
   useEffect(() => {
@@ -648,20 +649,40 @@ export function App() {
       setDraftColor(nextQuestionColor(next.constraints));
       if (next.selectedPoint) setSelectedPoint(next.selectedPoint);
       setImportText("");
+      setShowImportPanel(false);
       setShareStatus(`Imported ${next.constraints.length} question${next.constraints.length === 1 ? "" : "s"}.`);
     } catch {
       setShareStatus("Could not import that map link or state.");
     }
   }
 
-  function exportState() {
+  async function exportState() {
     const encoded = encodeMapState(constraints, selectedPoint);
     const url = `${location.origin}${location.pathname}#state=${encoded}`;
-    setImportText(url);
-    void navigator.clipboard
-      ?.writeText(url)
-      .then(() => setShareStatus("Map link copied."))
-      .catch(() => setShareStatus("Map link ready to copy."));
+    const shareData = {
+      title: "SF Hide & Seek map",
+      text: "Current question map",
+      url,
+    };
+
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        setShareStatus("Shared map link.");
+        return;
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus("Map link copied.");
+    } catch {
+      setImportText(url);
+      setShowImportPanel(true);
+      setShareStatus("Copy was blocked. Link is ready below.");
+    }
   }
 
   function copyQuestion() {
@@ -1093,12 +1114,24 @@ export function App() {
             </section>
 
             <section className="tool-panel">
-              <div className="section-heading">
+              <div className="section-heading stack-heading">
                 <h2>Question Stack</h2>
                 <div className="button-row">
-                  <button type="button" className="icon-text-button" title="Copy map link" onClick={exportState}>
-                    <Clipboard size={17} />
+                  <button type="button" className="icon-text-button" title="Share map link" onClick={exportState}>
+                    <Share2 size={17} />
                     Share
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-text-button"
+                    title="Import map link"
+                    onClick={() => {
+                      setShowImportPanel((value) => !value);
+                      setShareStatus("");
+                    }}
+                  >
+                    <ListChecks size={17} />
+                    Import
                   </button>
                   <button
                     type="button"
@@ -1114,28 +1147,38 @@ export function App() {
                   </button>
                 </div>
               </div>
-              <div className="share-panel">
-                <label>
-                  Share / import map
-                  <input
-                    type="text"
-                    value={importText}
-                    placeholder="Paste a map link or copied state"
-                    onChange={(event) => setImportText(event.target.value)}
-                  />
-                </label>
-                <div className="button-row">
-                  <button type="button" className="icon-text-button" onClick={exportState}>
-                    <Clipboard size={17} />
-                    Copy link
-                  </button>
-                  <button type="button" className="icon-text-button" onClick={() => applyImportedMapState(importText)} disabled={!importText.trim()}>
-                    <ListChecks size={17} />
-                    Import
-                  </button>
+              {shareStatus && <p className="share-status">{shareStatus}</p>}
+              {showImportPanel && (
+                <div className="share-panel">
+                  <label>
+                    Import map link
+                    <input
+                      type="text"
+                      value={importText}
+                      placeholder="Paste a shared map link"
+                      onChange={(event) => setImportText(event.target.value)}
+                    />
+                  </label>
+                  <div className="button-row">
+                    <button type="button" className="icon-text-button" onClick={() => applyImportedMapState(importText)} disabled={!importText.trim()}>
+                      <ListChecks size={17} />
+                      Load map
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-text-button"
+                      onClick={() => {
+                        setShowImportPanel(false);
+                        setImportText("");
+                        setShareStatus("");
+                      }}
+                    >
+                      <X size={17} />
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                {shareStatus && <p>{shareStatus}</p>}
-              </div>
+              )}
               <div className="constraint-list">
                 {constraints.length === 0 && <p className="empty">No questions applied yet.</p>}
                 {constraints.map((constraint, index) => {

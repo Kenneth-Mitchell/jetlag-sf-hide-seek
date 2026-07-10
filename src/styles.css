@@ -442,7 +442,7 @@ textarea {
   flex-wrap: wrap;
 }
 
-.share-panel p {
+.share-status {
   margin: 0;
   color: #65736f;
   font-size: 0.82rem;
@@ -586,6 +586,16 @@ button.answer-chip:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.stack-heading {
+  flex-wrap: wrap;
+}
+
+.stack-heading .button-row {
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .section-heading span,
@@ -780,5 +790,14 @@ button.answer-chip:hover {
   .constraint-list article {
     grid-template-columns: auto auto 1fr auto auto;
     align-items: start;
+  }
+
+  .stack-heading {
+    align-items: flex-start;
+  }
+
+  .stack-heading .button-row {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
