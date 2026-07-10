@@ -55,6 +55,27 @@ button:disabled {
   min-height: 42vh;
 }
 
+.drag-handle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  background: var(--handle-color);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgb(16 24 32 / 0.28);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  touch-action: none;
+}
+
+.drag-handle span {
+  transform: translateY(0.5px);
+}
+
 .control-pane {
   display: flex;
   flex-direction: column;

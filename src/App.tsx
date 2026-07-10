@@ -1,5 +1,5 @@
 import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCcw, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
 import { constraintColor, nextQuestionColor } from "./lib/colors";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
@@ -84,7 +84,6 @@ export function App() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
   }, [constraints]);
 
-  const candidates = useMemo(() => applyConstraints(constraints), [constraints]);
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
@@ -117,6 +116,27 @@ export function App() {
     [category, questionKind, radiusMiles, selectedPoint, tentacleRadius, thermoFrom, thermoTo, transitLine],
   );
   const canApplyQuestion = questionKind !== "tentacles" || tentacleAnswerFeatures.length > 0;
+  const editingConstraint = constraints.find((constraint) => constraint.id === editingConstraintId);
+  const draftConstraint = buildDraftConstraint({
+    id: editingConstraint?.id ?? "__draft__",
+    enabled: editingConstraint?.enabled ?? true,
+    color: editingConstraint?.color ?? nextQuestionColor(constraints),
+  });
+  const previewConstraints = useMemo(
+    () =>
+      editingConstraint
+        ? constraints.map((constraint) => (constraint.id === editingConstraint.id ? draftConstraint : constraint))
+        : constraints,
+    [constraints, draftConstraint, editingConstraint],
+  );
+  const appliedMapConstraints = useMemo(
+    () =>
+      editingConstraint
+        ? constraints.filter((constraint) => constraint.id !== editingConstraint.id)
+        : constraints,
+    [constraints, editingConstraint],
+  );
+  const candidates = useMemo(() => applyConstraints(previewConstraints), [previewConstraints]);
   const answerOptions = useMemo<AnswerOption[]>(() => {
     if (questionKind === "radius") {
       return [
@@ -257,6 +277,16 @@ export function App() {
     }
   }
 
+  function changeQuestionKind(nextKind: QuestionKind) {
+    if (nextKind === "thermometer" && questionKind !== "thermometer") {
+      setThermoTo(selectedPoint);
+    }
+    if (nextKind !== "thermometer" && questionKind === "thermometer") {
+      setSelectedPoint(thermoTo);
+    }
+    setQuestionKind(nextKind);
+  }
+
   function toggleConstraint(id: string) {
     setConstraints((current) =>
       current.map((constraint) =>
@@ -293,16 +323,36 @@ export function App() {
     setLocationStatus("Finding current location...");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setSelectedPoint({
+        const nextPoint = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
-        });
+        };
+        setSelectedPoint(nextPoint);
+        if (questionKind === "thermometer") setThermoTo(nextPoint);
         setLocationStatus(`Accuracy ${Math.round(position.coords.accuracy)} m`);
       },
       (error) => setLocationStatus(error.message),
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 },
     );
   }
+
+  const handleMapPointSelect = useCallback((point: LngLat) => {
+    setSelectedPoint(point);
+    if (questionKind === "thermometer") setThermoTo(point);
+  }, [questionKind]);
+
+  const moveDraftPoint = useCallback((point: LngLat) => {
+    setSelectedPoint(point);
+  }, []);
+
+  const moveThermoFrom = useCallback((point: LngLat) => {
+    setThermoFrom(point);
+  }, []);
+
+  const moveThermoTo = useCallback((point: LngLat) => {
+    setThermoTo(point);
+    setSelectedPoint(point);
+  }, []);
 
   useEffect(() => {
     const state = new URLSearchParams(location.hash.replace(/^#/, "")).get("state");
@@ -321,9 +371,12 @@ export function App() {
         <MapView
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
-          constraints={constraints}
-          selectedPoint={selectedPoint}
-          onSelectPoint={setSelectedPoint}
+          constraints={appliedMapConstraints}
+          draftConstraint={mode === "seeker" ? draftConstraint : undefined}
+          onSelectPoint={handleMapPointSelect}
+          onDraftPointChange={moveDraftPoint}
+          onThermoFromChange={moveThermoFrom}
+          onThermoToChange={moveThermoTo}
         />
       </section>
 
@@ -363,7 +416,7 @@ export function App() {
               <div className="field-grid">
                 <label>
                   Question
-                  <select value={questionKind} onChange={(event) => setQuestionKind(event.target.value as QuestionKind)}>
+                  <select value={questionKind} onChange={(event) => changeQuestionKind(event.target.value as QuestionKind)}>
                     {QUESTION_KINDS.map((kind) => (
                       <option key={kind.value} value={kind.value}>
                         {kind.label}

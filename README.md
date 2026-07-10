@@ -26,6 +26,10 @@ Implemented:
 - Per-question overlay colors with editable color swatches in the question stack.
 - Question builder shows the possible answer set before asking.
 - Question stack supports editing existing questions without duplicating them.
+- Map-based question setup uses draggable draft handles:
+  - one draggable ask point for radar, matching, measuring, tentacles, and district questions
+  - draggable A/B points for thermometer questions
+  - draft geometry updates live while dragging, throttled to animation frames
 - One-tap current-location reference point using the browser geolocation API.
 - Copyable plain-English question text in the seeker flow.
 - Hider mode canonical nearest answers from the same frozen snapshot.
