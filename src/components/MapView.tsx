@@ -67,8 +67,8 @@ function handleIcon(label: string, color: string): L.DivIcon {
   return L.divIcon({
     className: "",
     html: `<div class="drag-handle${dotClass}" style="--handle-color: ${color}">${content}</div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
   });
 }
 

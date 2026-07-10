@@ -58,14 +58,14 @@ button:disabled {
 .drag-handle {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 3px solid #ffffff;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #ffffff;
   border-radius: 999px;
   background: var(--handle-color);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgb(16 24 32 / 0.28);
-  font-size: 0.68rem;
+  box-shadow: 0 3px 9px rgb(16 24 32 / 0.24);
+  font-size: 0.6rem;
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
@@ -80,8 +80,8 @@ button:disabled {
 
 .drag-handle-dot::after {
   content: "";
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: #ffffff;
   box-shadow: 0 0 0 2px rgb(255 255 255 / 0.45);
