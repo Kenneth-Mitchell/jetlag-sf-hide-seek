@@ -1,0 +1,396 @@
+{
+  "Museums:01:Academy of Art University Automobile Museum": {
+    "lat": 37.792798,
+    "lng": -122.423476,
+    "source": "https://maps.app.goo.gl/KsSjG2yYLapUbKnC9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Academy+of+Art+University+Automobile+Museum/@37.7922299,-122.4257881,17z/data=!4m6!3m5!1s0x808580ea7ace2a13:0x7d6e46fb778d594d!8m2!3d37.792798!4d-122.423476!16s%2Fg%2F11c5fzypv4?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:02:African American Art & Culture Complex": {
+    "lat": 37.7782258,
+    "lng": -122.4292816,
+    "source": "https://maps.app.goo.gl/MdRQdLYRyZhvDszh7",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/African+American+Art+%26+Culture+Complex/@37.777437,-122.4447918,15z/data=!4m7!3m6!1s0x808580a350ee6f01:0x2f16e84a4d7ac0ee!8m2!3d37.7782258!4d-122.4292816!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQ9jdWx0dXJhbF9jZW50ZXLgAQA!16s%2Fm%2F0k3cj_j?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:03:The American Bookbinders Museum": {
+    "lat": 37.7814153,
+    "lng": -122.4028766,
+    "source": "https://maps.app.goo.gl/aJAKJ4rt9sFvwXKL9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/The+American+Bookbinders+Museum/@37.7814153,-122.4054569,17z/data=!3m1!4b1!4m6!3m5!1s0x808f7e2578f12beb:0xfb19e8fa3b1e2ad0!8m2!3d37.7814153!4d-122.4028766!16s%2Fg%2F11h7dcn2d8?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:04:Antique Vibrator Museum": {
+    "lat": 37.7918694,
+    "lng": -122.4208412,
+    "source": "https://maps.app.goo.gl/UVa8z1Wz3YxoZwDa9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Antique+Vibrator+Museum/@37.7918694,-122.4298534,16z/data=!4m7!3m6!1s0x808580eb2296e385:0x2d1998d3bd720aa3!8m2!3d37.7918694!4d-122.4208412!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQZtdXNldW3gAQA!16s%2Fg%2F11f01qpg79?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:05:Asian Art Museum of San Francisco": {
+    "lat": 37.7802772,
+    "lng": -122.4161605,
+    "source": "https://maps.app.goo.gl/V4CWyacgQtUj193o9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Asian+Art+Museum/@37.7802772,-122.4187408,17z/data=!3m1!4b1!4m6!3m5!1s0x8085809a4d150491:0x549b6422daed131f!8m2!3d37.7802772!4d-122.4161605!16zL20vMDI0NXZs?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:06:The Beat Museum": {
+    "lat": 37.7980878,
+    "lng": -122.4061951,
+    "source": "https://maps.app.goo.gl/jUCUfMBk4T2aMdMLA",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/The+Beat+Museum/@37.7980878,-122.4087754,17z/data=!3m1!4b1!4m6!3m5!1s0x808580f465afaa63:0x11bf7d4bc5d6ec13!8m2!3d37.7980878!4d-122.4061951!16s%2Fg%2F11f08jfg3j?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:07:Boudin Museum": {
+    "lat": 37.808507,
+    "lng": -122.4149153,
+    "source": "https://maps.app.goo.gl/xYN6xHocrQBJuMuq6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Boudin+Museum+%26+Bakery+Tour/@37.808507,-122.4200651,16z/data=!4m7!3m6!1s0x808581b8e13652fb:0xd6eafb45d6b8fa9a!8m2!3d37.808507!4d-122.4149153!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQZtdXNldW3gAQA!16s%2Fg%2F11gy2_0mtr?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:08:The Cable Car Museum": {
+    "lat": 37.7946366,
+    "lng": -122.4115074,
+    "source": "https://maps.app.goo.gl/REp59HTJH4hRq1mq8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Cable+Car+Museum/@37.794629,-122.414679,16.84z/data=!4m6!3m5!1s0x808580f2960c5a5f:0xdfcd6cebc1ae9a35!8m2!3d37.7946366!4d-122.4115074!16zL20vMDRweDli?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:09:California Academy of Sciences": {
+    "lat": 37.7698646,
+    "lng": -122.4660947,
+    "source": "https://maps.app.goo.gl/MspwVvtjiYgEpS2QA",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/California+Academy+of+Sciences/@37.7698646,-122.4686696,16z/data=!3m1!4b1!4m6!3m5!1s0x80858743acfb4421:0x1b8487cfc077cab9!8m2!3d37.7698646!4d-122.4660947!16zL20vMDJobW00?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:10:Cartoon Art Museum": {
+    "lat": 37.8063311,
+    "lng": -122.4217929,
+    "source": "https://maps.app.goo.gl/8NTKcZtW4W5Zekyc8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Cartoon+Art+Museum/@37.8063311,-122.4243678,16z/data=!3m2!4b1!5s0x808580e122a8839d:0xbfe220de26bf0749!4m6!3m5!1s0x8085807d56a4045b:0x94f509f113d60751!8m2!3d37.8063311!4d-122.4217929!16zL20vMDU5NXB2?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:11:Children’s Creativity Museum": {
+    "lat": 37.7833445,
+    "lng": -122.4023038,
+    "source": "https://maps.app.goo.gl/Yo1wCWCF5WYrVBrP9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Children's+Creativity+Museum/@37.7833445,-122.4048787,17z/data=!3m1!4b1!4m6!3m5!1s0x80858087438c54b7:0x9229072a5964c7fb!8m2!3d37.7833445!4d-122.4023038!16zL20vMDZjM2N2?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:12:Chinese Historical Society of America Museum": {
+    "lat": 37.7938363,
+    "lng": -122.408787,
+    "source": "https://maps.app.goo.gl/casPt23bDgW92yCY6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Chinese+Historical+Society+of+America+Museum/@37.7938363,-122.4113619,16z/data=!3m1!4b1!4m6!3m5!1s0x8085808cc6082e41:0x31f14efce7602907!8m2!3d37.7938363!4d-122.408787!16s%2Fg%2F1vcjmgvn?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:13:Conservatory of Flowers": {
+    "lat": 37.7726187,
+    "lng": -122.4602558,
+    "source": "https://maps.app.goo.gl/at6nD9c6s8AWKgcdA",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Conservatory+of+Flowers/@37.771516,-122.4796276,15z/data=!4m7!3m6!1s0x808587459ac2a6e5:0x4cfc5cb588e07c1f!8m2!3d37.7726187!4d-122.4602558!15sCgdNdXNldW1zWgkiB211c2V1bXOSARBib3RhbmljYWxfZ2FyZGVu4AEA!16zL20vMDZ6MzJw?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:14:The Contemporary Jewish Museum": {
+    "lat": 37.7860026,
+    "lng": -122.403672,
+    "source": "https://maps.app.goo.gl/H95m4tjpSphjyzEH9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/The+Contemporary+Jewish+Museum/@37.7860026,-122.4062469,17z/data=!3m1!4b1!4m6!3m5!1s0x80858087c51f8a43:0xa9ef23db8123b49c!8m2!3d37.7860026!4d-122.403672!16s%2Fm%2F02rwwk9?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:15:de Young Museum:address": {
+    "lat": 37.7714976,
+    "lng": -122.4690915,
+    "source": "50 Hagiwara Tea Garden Dr, San Francisco, CA 94118",
+    "sourceKind": "nominatim-address",
+    "resolvedUrl": "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=50+Hagiwara+Tea+Garden+Dr%2C+San+Francisco%2C+CA+94118%2C+San+Francisco%2C+CA",
+    "displayName": "de Young Museum, 50, Hagiwara Tea Garden Drive, Inner Richmond, Richmond District, San Francisco, California, 94118, United States",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:16:Exploratorium:address": {
+    "lat": 37.8008982,
+    "lng": -122.3985255,
+    "source": "Pier 15 Embarcadero at, Green St, San Francisco, CA 94111",
+    "sourceKind": "nominatim-address",
+    "resolvedUrl": "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=Exploratorium%2C+San+Francisco%2C+CA",
+    "displayName": "Exploratorium, Herb Caen Way..., Telegraph Hill, Financial District, South of Market, San Francisco, California, 94111, United States",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:17:Gadar Memorial": {
+    "lat": 37.7836349,
+    "lng": -122.449678,
+    "source": "https://maps.app.goo.gl/ELohhfa7CXkM8XJg9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Gadar+Memorial/@37.7836001,-122.4493726,16z/data=!4m7!3m6!1s0x80858735a877d199:0x7ed477b0b6d97ff5!8m2!3d37.7836349!4d-122.449678!15sCgdNdXNldW1zkgEGbXVzZXVt4AEA!16s%2Fg%2F11cjk3s38r?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:18:GLBT Historical Society Museum": {
+    "lat": 37.7607149,
+    "lng": -122.4356357,
+    "source": "https://maps.app.goo.gl/jwNNwX8KVKoJ2E518",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/GLBT+Historical+Society+Museum/@37.7607149,-122.4382106,17z/data=!3m1!4b1!4m6!3m5!1s0x808f7e04cc0ba189:0x54bf9890be5141ab!8m2!3d37.7607149!4d-122.4356357!16s%2Fg%2F1tvyl_mt?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:19:The Gregangelo Museum": {
+    "lat": 37.732698,
+    "lng": -122.468418,
+    "source": "https://maps.app.goo.gl/oNkB6HU59BrYZz1T8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/The+Gregangelo+Museum/@37.732698,-122.4787534,15z/data=!4m7!3m6!1s0x808f7dc6aaaaaaab:0xbd1c72f99c60c295!8m2!3d37.732698!4d-122.468418!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQphcnRfbXVzZXVt4AEA!16s%2Fg%2F1v62hx4_?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:20:Haas-Lilienthal House": {
+    "lat": 37.7933576,
+    "lng": -122.4247784,
+    "source": "https://maps.app.goo.gl/9m9CRQY3m2XV9dRN9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Haas-Lilienthal+House/@37.7933576,-122.4273533,16z/data=!3m1!4b1!4m6!3m5!1s0x808580c1e920000f:0xfb2bcc14e6974dc1!8m2!3d37.7933576!4d-122.4247784!16s%2Fm%2F02p_8jw?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:21:Institute of Contemporary Art San Francisco (ICASF)": {
+    "lat": 37.7925277,
+    "lng": -122.4031008,
+    "source": "https://maps.app.goo.gl/bukVFu8MjDWuwtku9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/ICA+SF/@37.7946877,-122.4104021,16.11z/data=!3m1!5s0x8085808a163aa0a3:0x5a8996f433c60604!4m7!3m6!1s0x808f7f6f41d3c4cd:0x333bd93c00d94aa1!8m2!3d37.7925277!4d-122.4031008!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQZtdXNldW2aASRDaGREU1VoTk1HOW5TMFZKUTBGblNVUjJMV1JwYlhsM1JSQULgAQD6AQQIDxA4!16s%2Fg%2F11ptslmtf5?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:22:International Art Museum of America": {
+    "lat": 37.7816852,
+    "lng": -122.4107299,
+    "source": "https://maps.app.goo.gl/5kHr65XiesuSkPcVA",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/International+Art+Museum+of+America/@37.7816852,-122.4133048,17z/data=!3m1!4b1!4m6!3m5!1s0x80858084fb4a03c9:0x17595e9968d9603b!8m2!3d37.7816852!4d-122.4107299!16s%2Fg%2F11c542mflj?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:23:Legion of Honor": {
+    "lat": 37.7844661,
+    "lng": -122.5008419,
+    "source": "https://maps.app.goo.gl/7a42cqDhbFrPqUYWA",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Legion+of+Honor/@37.7844661,-122.5034168,17z/data=!3m1!4b1!4m6!3m5!1s0x808587acd6e2ba69:0xb9ffd88c77154d2c!8m2!3d37.7844661!4d-122.5008419!16zL20vMDIxenZy?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:24:Letterform Archive": {
+    "lat": 37.7601343,
+    "lng": -122.3882609,
+    "source": "https://maps.app.goo.gl/WMfi6Uw8Byf1rfNC8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Letterform+Archive/@37.7601343,-122.3908358,17z/data=!3m2!4b1!5s0x8085998d7028bacd:0xd6fa5bea6667fe6!4m6!3m5!1s0x808f7fc90def04fb:0x8250c3eff4e6a4e9!8m2!3d37.7601343!4d-122.3882609!16s%2Fg%2F11gbwszc74?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:25:Lucasfilm Lobby": {
+    "lat": 37.798921,
+    "lng": -122.4507353,
+    "source": "https://maps.app.goo.gl/m3y5Mpi4LfBT2Fts7",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Lucasfilm+Lobby/@37.7989292,-122.4618164,15z/data=!4m7!3m6!1s0x8085872a46590d5b:0xd1974aa4f8cafc32!8m2!3d37.798921!4d-122.4507353!15sCgdNdXNldW1zWgkiB211c2V1bXOSARBzY3VscHR1cmVfbXVzZXVtmgEkQ2hkRFNVaE5NRzluUzBWSlEwRm5TVVEzYVV0eVdIbEJSUkFC4AEA-gEECDMQPw!16s%2Fg%2F11c1ny4_q9?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:26:Maritime Museum": {
+    "lat": 37.8063433,
+    "lng": -122.4238931,
+    "source": "https://maps.app.goo.gl/GhNG82Fx7RE9jedP6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Maritime+Museum/@37.8062134,-122.4247702,18.63z/data=!4m7!3m6!1s0x808580e1a8edb3ed:0xdc6132ba76a1f7d0!8m2!3d37.8063433!4d-122.4238931!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQ9tYXJpdGltZV9tdXNldW3gAQA!16s%2Fg%2F12ht22t0f?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:27:McElroy Octagon House": {
+    "lat": 37.7977932,
+    "lng": -122.4274477,
+    "source": "https://maps.app.goo.gl/t1VQUiyui8yUEcpk6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/McElroy+Octagon+House/@37.7972568,-122.4291092,17z/data=!4m6!3m5!1s0x808580c32ef892a9:0x340d4a5ad6f3557a!8m2!3d37.7977932!4d-122.4274477!16s%2Fm%2F047r5h9?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:28:The Mexican Museum": {
+    "lat": 37.7868718,
+    "lng": -122.4007333,
+    "source": "https://maps.app.goo.gl/gTGxvqnmMFJBsdq89",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/The+Mexican+Museum/@37.7868718,-122.4033082,17z/data=!3m1!4b1!4m6!3m5!1s0x808580d86dc803cd:0xdd64917d982ee402!8m2!3d37.7868718!4d-122.4007333!16s%2Fm%2F02659c6?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:29:Mission Science Workshop": {
+    "lat": 37.762014,
+    "lng": -122.428229,
+    "source": "https://maps.app.goo.gl/GkNgee3At7Cgsr3P9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Mission+Science+Workshop/@37.7637506,-122.4313572,16.69z/data=!4m7!3m6!1s0x808f7e185165b627:0x7148e24508dfebf9!8m2!3d37.762014!4d-122.428229!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQ5zY2llbmNlX211c2V1bZoBI0NoWkRTVWhOTUc5blMwVkpRMEZuU1VOdE0wMWhkMWRSRUFF4AEA-gEECAAQSw!16s%2Fg%2F1tf65q8m?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:30:Mission Science Workshop, Excelsior Site": {
+    "lat": 37.7264251,
+    "lng": -122.4338684,
+    "source": "https://maps.app.goo.gl/CWw1NDdNbm8BWHaG9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Mission+Science+Workshop+-+Excelsior+Site/@37.7263596,-122.4668058,14z/data=!4m7!3m6!1s0x808f7e8608a07333:0xcd2512aa22a781df!8m2!3d37.7264251!4d-122.4338684!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQ5zY2llbmNlX211c2V1bZoBJENoZERTVWhOTUc5blMwVkpRMEZuU1VOQ1oxQjZhVFZCUlJBQuABAPoBBAgAEDg!16s%2Fg%2F12hnplbdy?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:31:Musée Mécanique": {
+    "lat": 37.8093037,
+    "lng": -122.4159684,
+    "source": "https://maps.app.goo.gl/o4w47gb4HHrYNs8d7",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Mus%C3%A9e+M%C3%A9canique/@37.8093037,-122.4185433,16z/data=!3m1!4b1!4m6!3m5!1s0x808580e254330009:0xed9aa8b90062eab8!8m2!3d37.8093037!4d-122.4159684!16zL20vMDl5Ym05?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:32:Museo Italo Americano": {
+    "lat": 37.806758,
+    "lng": -122.431448,
+    "source": "https://maps.app.goo.gl/SMYkyhxjpmKfEAcA6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Museo+Italo+Americano/@37.806758,-122.4340229,16z/data=!3m2!4b1!5s0x808580d89c6bbedd:0x8d9d3f3706864060!4m6!3m5!1s0x808580de5d16d545:0x51d39b4ec8284b2e!8m2!3d37.806758!4d-122.431448!16s%2Fm%2F09gpj8v?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:33:Museum of the African Diaspora": {
+    "lat": 37.786376,
+    "lng": -122.4013871,
+    "source": "https://maps.app.goo.gl/tQHg5qCsuXnTogeL9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Museum+of+the+African+Diaspora/@37.786376,-122.403962,17z/data=!3m1!4b1!4m6!3m5!1s0x80858087f7ee5ead:0x63401c1f99770355!8m2!3d37.786376!4d-122.4013871!16zL20vMGY3MjZ6?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:34:Museum of Craft and Design": {
+    "lat": 37.7568398,
+    "lng": -122.3877893,
+    "source": "https://maps.app.goo.gl/TDKoPxi6uxkiQ8ow8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Museum+of+Craft+and+Design/@37.7568398,-122.3903642,17z/data=!3m2!4b1!5s0x808f7fba31341fa9:0x40d31bed6d70abeb!4m6!3m5!1s0x8085808e8235cc9f:0x879838e61246f175!8m2!3d37.7568398!4d-122.3877893!16s%2Fg%2F1hm2nkg9t?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:35:Museum of Russian Culture": {
+    "lat": 37.7852415,
+    "lng": -122.4409156,
+    "source": "https://maps.app.goo.gl/DYVm7coj2FZ4y7AL7",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Museum+of+Russian+Culture/@37.7852415,-122.4434905,16z/data=!3m1!4b1!4m6!3m5!1s0x808580c9f717c5f1:0xd1ed3bed6c440af6!8m2!3d37.7852415!4d-122.4409156!16s%2Fg%2F1tdzg6pd?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:36:Old Mission Dolores Museum": {
+    "lat": 37.7641637,
+    "lng": -122.4269497,
+    "source": "https://maps.app.goo.gl/LMphac7dahEn2xzg7",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Old+Mission+Dolores+Museum/@37.7637506,-122.4313572,16.69z/data=!4m7!3m6!1s0x808f7f0b9b2d05f3:0xc52eba02d19892e4!8m2!3d37.7641637!4d-122.4269497!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQ9oZXJpdGFnZV9tdXNldW2aASNDaFpEU1VoTk1HOW5TMFZKUTBGblNVTllkbUZoTVZGbkVBReABAPoBBAgdEDU!16s%2Fg%2F11tt631354?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:37:Pacific Heritage Museum": {
+    "lat": 37.794379,
+    "lng": -122.403267,
+    "source": "https://maps.app.goo.gl/f2K4KqVmV6yoKsjb9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Pacific+Heritage+Museum/@37.794379,-122.4058419,17z/data=!3m2!4b1!5s0x8085808a1cddca7f:0xd870880aad0cf3d4!4m6!3m5!1s0x8085808af1c8935b:0xd5621cb9a9f91e21!8m2!3d37.794379!4d-122.403267!16s%2Fg%2F1v29c7fj?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:38:Presidio Officers’ Club": {
+    "lat": 37.7975737,
+    "lng": -122.4588825,
+    "source": "https://maps.app.goo.gl/LFGMDmyT8evaq1r39",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Presidio+Officers'+Club/@37.7975728,-122.4707344,15z/data=!4m7!3m6!1s0x80858727f01e5c1f:0x59db7ed6ddd88c0d!8m2!3d37.7975737!4d-122.4588825!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQ9oZXJpdGFnZV9tdXNldW3gAQA!16s%2Fg%2F1tf879js?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:39:Randall Museum": {
+    "lat": 37.764426,
+    "lng": -122.4383192,
+    "source": "https://maps.app.goo.gl/wfcyeojT5c1SVNmx6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Randall+Museum/@37.764426,-122.4408941,16z/data=!3m1!4b1!4m6!3m5!1s0x808f7e39dbeed3dd:0x69aed85f8a91d67b!8m2!3d37.764426!4d-122.4383192!16zL20vMDh6czg0?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:40:San Francisco Fire Department Museum": {
+    "lat": 37.7857851,
+    "lng": -122.4467017,
+    "source": "https://maps.app.goo.gl/3oUBb3LNnEgDzNEt8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/San+Francisco+Fire+Department+Museum/@37.7857851,-122.4492766,17z/data=!3m1!4b1!4m6!3m5!1s0x808580cb2d80ee15:0x48361906080f7ce!8m2!3d37.7857851!4d-122.4467017!16s%2Fm%2F04vhpfx?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:41:SFMOMA": {
+    "lat": 37.7857182,
+    "lng": -122.4010508,
+    "source": "https://maps.app.goo.gl/4SLva68FsAamvTAg9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/San+Francisco+Museum+of+Modern+Art/@37.7857181,-122.4056642,17z/data=!3m1!4b1!4m6!3m5!1s0x8085807d623572e7:0xc87ca0dcbc7559fd!8m2!3d37.7857182!4d-122.4010508!16zL20vMDEyXzF0?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:42:San Francisco Railway Museum": {
+    "lat": 37.7938256,
+    "lng": -122.3935533,
+    "source": "https://maps.app.goo.gl/t16K6evKmLAqVSGx7",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/San+Francisco+Railway+Museum/@37.7886827,-122.4298885,15z/data=!4m7!3m6!1s0x8085806431f1fefd:0xa92570ab6d61114e!8m2!3d37.7938256!4d-122.3935533!15sCg5yYWlsd2F5IG11c2V1bVoQIg5yYWlsd2F5IG11c2V1bZIBC3JhaWxfbXVzZXVt4AEA!16s%2Fm%2F02pqty5?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:43:SS Jeremiah O’Brien": {
+    "lat": 37.8082357,
+    "lng": -122.4066025,
+    "source": "https://maps.app.goo.gl/4TZXHF3u3iDk4DKw6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/SS+Jeremiah+O'Brien/@37.8082357,-122.4091774,17z/data=!3m1!4b1!4m6!3m5!1s0x808580e250607b47:0x8e3343bc67cd2ea9!8m2!3d37.8082357!4d-122.4066025!16zL20vMDI2dGc4?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:44:Tenderloin Museum": {
+    "lat": 37.7838761,
+    "lng": -122.4141613,
+    "source": "https://maps.app.goo.gl/ACfiAR8ogb6jx1md8",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Tenderloin+Museum/@37.7838761,-122.4167362,17z/data=!3m2!4b1!5s0x8085809012fb7997:0xe1f42f68d5414436!4m6!3m5!1s0x808580906d4df91b:0x24ff4fe1caafc880!8m2!3d37.7838761!4d-122.4141613!16s%2Fg%2F11bv3rrdz5?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:45:Truhlsen-Marmor Museum of the Eye": {
+    "lat": 37.8065866,
+    "lng": -122.4199945,
+    "source": "https://maps.app.goo.gl/KRg7pSwKFR194aZn9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Truhlsen-Marmor+Museum+of+the+Eye/@37.805703,-122.4253921,17.15z/data=!4m7!3m6!1s0x808580e116889741:0xdd1d66edb4231332!8m2!3d37.8065866!4d-122.4199945!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQZtdXNldW2aASRDaGREU1VoTk1HOW5TMFZKUTBGblNVUjZPVkI2Vkd4M1JSQULgAQD6AQQIABA5!16s%2Fg%2F1tg4x1sj?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:46:USS Pampanito": {
+    "lat": 37.8099899,
+    "lng": -122.4164381,
+    "source": "https://maps.app.goo.gl/92wGv6YWRXkp6cm48",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/USS+Pampanito+Museum+and+Memorial/@37.8099899,-122.419013,16z/data=!3m1!4b1!4m6!3m5!1s0x808580e2576344eb:0x6a01f554c18d3c65!8m2!3d37.8099899!4d-122.4164381!16zL20vMDE4bXM1?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:47:Walt Disney Family Museum": {
+    "lat": 37.8013783,
+    "lng": -122.4586431,
+    "source": "https://maps.app.goo.gl/mQ8J9coNNd9GF9Cq6",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/The+Walt+Disney+Family+Museum/@37.8013783,-122.461218,16z/data=!3m1!4b1!4m6!3m5!1s0x808586d82ad9fee5:0x551f9b2e159866f5!8m2!3d37.8013783!4d-122.4586431!16s%2Fm%2F026pd0n?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:48:Wells Fargo Museum": {
+    "lat": 37.7934063,
+    "lng": -122.4026676,
+    "source": "https://maps.app.goo.gl/9KSRPDATpZ24jCJg9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/Wells+Fargo+Museum/@37.7934063,-122.4052425,17z/data=!3m2!4b1!5s0x8085808a5c775be3:0x2da147a2fb64ae65!4m6!3m5!1s0x8085808a4f7c3c45:0xe7f0b3710eab55ad!8m2!3d37.7934063!4d-122.4026676!16s%2Fg%2F1tgp10h7?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  },
+  "Museums:49:WWII Pacific War Memorial Hall": {
+    "lat": 37.7932101,
+    "lng": -122.4063607,
+    "source": "https://maps.app.goo.gl/oatNFyg75BghQHQk9",
+    "sourceKind": "google-maps-redirect",
+    "resolvedUrl": "https://www.google.com/maps/place/WWII+Pacific+War+Memorial+Hall/@37.7950931,-122.4121345,16.43z/data=!4m7!3m6!1s0x8085808b7a789d0d:0x8e7beb20fc732741!8m2!3d37.7932101!4d-122.4063607!15sCgdNdXNldW1zWgkiB211c2V1bXOSAQZtdXNldW3gAQA!16s%2Fg%2F11cs04xvyt?entry=tts&g_ep=EgoyMDI1MDIxMi4wIPu8ASoASAFQAw%3D%3D",
+    "resolvedAt": "2026-07-10"
+  }
+}
