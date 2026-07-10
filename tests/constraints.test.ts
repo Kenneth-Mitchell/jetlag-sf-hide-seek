@@ -1,9 +1,9 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
+import { buildConstraintOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
-import { buildSurvivalGrid } from "../src/lib/survivalGrid";
 import type { CandidateStation, Constraint, LngLat } from "../src/lib/types";
 
 function station(name: string): CandidateStation {
@@ -67,19 +67,51 @@ describe("constraint engine", () => {
     expect(first).toEqual(second);
   });
 
-  it("builds a drawable possible-region grid for active constraints", () => {
-    const constraint: Constraint = {
-      id: "grid-radius",
+  it("builds drawable vector overlays for active constraints", () => {
+    const constraints: Constraint[] = [{
+      id: "overlay-radius",
       kind: "radius",
       label: "Radius",
       point: vanNessMarket,
       miles: 1,
       answer: "inside",
       enabled: true,
-    };
-    const grid = buildSurvivalGrid([constraint]);
-    expect(grid.features.length).toBeGreaterThan(0);
-    expect(grid.features.every((feature) => feature.geometry.type === "Polygon")).toBe(true);
+    }, {
+      id: "overlay-thermo",
+      kind: "thermometer",
+      label: "Thermometer",
+      from: { lat: 37.77, lng: -122.45 },
+      to: vanNessMarket,
+      answer: "warmer",
+      enabled: true,
+    }, {
+      id: "overlay-match",
+      kind: "matching",
+      label: "Museum",
+      point: vanNessMarket,
+      category: "museums",
+      answer: "yes",
+      enabled: true,
+    }, {
+      id: "overlay-measure",
+      kind: "measuring",
+      label: "Dog park",
+      point: vanNessMarket,
+      category: "dogParks",
+      answer: "closer",
+      enabled: true,
+    }, {
+      id: "overlay-district",
+      kind: "district",
+      label: "District",
+      point: vanNessMarket,
+      answer: "yes",
+      enabled: true,
+    }];
+    const overlays = buildConstraintOverlays(constraints);
+    expect(overlays.some((overlay) => overlay.kind === "circle")).toBe(true);
+    expect(overlays.some((overlay) => overlay.kind === "polygon")).toBe(true);
+    expect(overlays.every((overlay) => overlay.kind !== "line" || overlay.coordinates.length >= 2)).toBe(true);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

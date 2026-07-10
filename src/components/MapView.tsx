@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { useEffect, useRef } from "react";
+import { buildConstraintOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
 import { milesToMeters } from "../lib/geo";
 import { snapshot, vanNessMarket } from "../lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../lib/types";
@@ -8,15 +9,39 @@ type MapViewProps = {
   candidates: CandidateStation[];
   eliminated: CandidateStation[];
   constraints: Constraint[];
-  possibleRegion: GeoJSON.FeatureCollection;
   selectedPoint: LngLat;
   onSelectPoint: (point: LngLat) => void;
 };
 
-export function MapView({ candidates, eliminated, constraints, possibleRegion, selectedPoint, onSelectPoint }: MapViewProps) {
+function overlayStyle(mode: ConstraintOverlay["mode"]): L.PathOptions {
+  if (mode === "reference") {
+    return {
+      color: "#2563eb",
+      weight: 2,
+      dashArray: "6 6",
+      fillOpacity: 0,
+    };
+  }
+  if (mode === "exclude") {
+    return {
+      color: "#b91c1c",
+      weight: 2.2,
+      dashArray: "7 6",
+      fillColor: "#ef4444",
+      fillOpacity: 0.12,
+    };
+  }
+  return {
+    color: "#0f766e",
+    weight: 2.2,
+    fillColor: "#14b8a6",
+    fillOpacity: 0.2,
+  };
+}
+
+export function MapView({ candidates, eliminated, constraints, selectedPoint, onSelectPoint }: MapViewProps) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const regionRef = useRef<L.GeoJSON | null>(null);
   const vectorConstraintRef = useRef<L.LayerGroup | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -42,15 +67,6 @@ export function MapView({ candidates, eliminated, constraints, possibleRegion, s
         fillOpacity: 0.08,
       },
     }).addTo(map);
-    regionRef.current = L.geoJSON(undefined, {
-      interactive: false,
-      style: {
-        color: "#0f766e",
-        weight: 0,
-        fillColor: "#14b8a6",
-        fillOpacity: 0.28,
-      },
-    }).addTo(map);
     vectorConstraintRef.current = L.layerGroup().addTo(map);
     const layers = L.layerGroup().addTo(map);
     layersRef.current = layers;
@@ -59,30 +75,30 @@ export function MapView({ candidates, eliminated, constraints, possibleRegion, s
   }, [onSelectPoint]);
 
   useEffect(() => {
-    const region = regionRef.current;
-    if (!region) return;
-    region.clearLayers();
-    if (possibleRegion.features.length > 0) {
-      region.addData(possibleRegion);
-    }
-  }, [possibleRegion]);
-
-  useEffect(() => {
     const group = vectorConstraintRef.current;
     if (!group) return;
     group.clearLayers();
-    for (const constraint of constraints) {
-      if (!constraint.enabled || constraint.kind !== "radius") continue;
-      const isKeepingInside = constraint.answer === "inside";
-      L.circle([constraint.point.lat, constraint.point.lng], {
-        radius: milesToMeters(constraint.miles),
-        color: isKeepingInside ? "#0f766e" : "#b91c1c",
-        weight: 2.5,
-        dashArray: isKeepingInside ? undefined : "7 6",
-        fillColor: isKeepingInside ? "#14b8a6" : "#ef4444",
-        fillOpacity: isKeepingInside ? 0.22 : 0.11,
-        interactive: false,
-      }).addTo(group);
+    for (const overlay of buildConstraintOverlays(constraints)) {
+      if (overlay.kind === "circle") {
+        L.circle([overlay.center.lat, overlay.center.lng], {
+          ...overlayStyle(overlay.mode),
+          radius: milesToMeters(overlay.radiusMiles),
+          interactive: false,
+        }).addTo(group);
+      } else if (overlay.kind === "polygon") {
+        L.geoJSON(overlay.feature, {
+          interactive: false,
+          style: overlayStyle(overlay.mode),
+        }).addTo(group);
+      } else {
+        L.polyline(
+          overlay.coordinates.map((coordinate) => [coordinate.lat, coordinate.lng]),
+          {
+            ...overlayStyle(overlay.mode),
+            interactive: false,
+          },
+        ).addTo(group);
+      }
     }
   }, [constraints]);
 
