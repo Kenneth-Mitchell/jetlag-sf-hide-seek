@@ -34,6 +34,14 @@ button:hover {
   border-color: #0f766e;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgb(15 118 110 / 0.28);
+  outline-offset: 2px;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -201,6 +209,55 @@ h2 {
   white-space: nowrap;
 }
 
+.square-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.layer-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 10px;
+  border: 1px solid #d9e2df;
+  border-radius: 8px;
+  background: #ffffff;
+  scrollbar-width: none;
+}
+
+.layer-toggle-row::-webkit-scrollbar {
+  display: none;
+}
+
+.layer-toggle-row span {
+  flex: 0 0 auto;
+  color: #65736f;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.layer-toggle-row button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #344543;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.layer-toggle-row button.active {
+  border-color: #0f766e;
+  background: #e4f4ef;
+  color: #0f766e;
+  box-shadow: inset 0 0 0 1px rgb(15 118 110 / 0.18);
+}
+
 .status-line {
   margin: -4px 4px 0;
   color: #65736f;
@@ -279,11 +336,10 @@ textarea {
   gap: 8px;
 }
 
-.transit-line-picker {
+.transit-line-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
   gap: 6px;
-  max-height: 142px;
+  max-height: 190px;
   overflow: auto;
   padding: 7px;
   border: 1px solid #d9e2df;
@@ -317,28 +373,46 @@ textarea {
   font-weight: 900;
 }
 
-.transit-line-picker button {
-  min-height: 34px;
-  padding: 6px 8px;
+.transit-line-list button {
+  display: grid;
+  grid-template-columns: minmax(44px, auto) 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 7px 9px;
   border-color: #d4dfdc;
   border-radius: 8px;
   background: #fff;
   color: #101820;
+  text-align: left;
+}
+
+.transit-line-list button strong {
   font-size: 0.84rem;
   font-weight: 850;
 }
 
-.transit-line-picker button:hover {
+.transit-line-list button span {
+  color: #65736f;
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.transit-line-list button:hover {
   border-color: #64748b;
 }
 
-.transit-line-picker button.selected-line {
+.transit-line-list button.selected-line {
   border-color: #101820;
   background: #101820;
   color: #fff;
 }
 
-.transit-line-picker span {
+.transit-line-list button.selected-line span {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.transit-line-list > span {
   grid-column: 1 / -1;
   padding: 8px;
   color: #65736f;
@@ -354,6 +428,26 @@ textarea {
   width: 100%;
   border-radius: 8px;
   font-weight: 800;
+}
+
+.share-panel {
+  display: grid;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #edf1ef;
+  border-radius: 8px;
+  background: #fbfdfb;
+}
+
+.share-panel .button-row {
+  flex-wrap: wrap;
+}
+
+.share-panel p {
+  margin: 0;
+  color: #65736f;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .question-preview {
@@ -512,6 +606,16 @@ button.answer-chip:hover {
   background: #fbfdfb;
 }
 
+.constraint-list article button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 8px;
+}
+
 .color-picker {
   display: block;
   width: 30px;
@@ -599,6 +703,28 @@ button.answer-chip:hover {
 }
 
 @media (max-width: 520px) {
+  .app-shell {
+    grid-template-rows: minmax(46vh, 48vh) auto;
+  }
+
+  .map-pane,
+  .leaflet-host {
+    min-height: 46vh;
+  }
+
+  button {
+    min-height: 44px;
+  }
+
+  .control-pane {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .layer-toggle-row {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
   .app-header {
     display: grid;
   }
@@ -621,5 +747,18 @@ button.answer-chip:hover {
 
   .question-preview button {
     width: 100%;
+  }
+
+  .selected-transit-line {
+    grid-template-columns: auto minmax(36px, auto) 1fr;
+  }
+
+  .transit-line-list {
+    max-height: 240px;
+  }
+
+  .constraint-list article {
+    grid-template-columns: auto auto 1fr auto auto;
+    align-items: start;
   }
 }

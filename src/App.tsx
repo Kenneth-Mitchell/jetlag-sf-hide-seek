@@ -19,6 +19,15 @@ type QuestionKind = Constraint["kind"];
 const STORAGE_KEY = "jetlag-sf-constraints-v1";
 const COMPACT_VORONOI_ANSWER_LIMIT = 6;
 
+type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
+
+const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
+  { key: "stations", label: "Stations" },
+  { key: "currentQuestion", label: "Current" },
+  { key: "appliedQuestions", label: "Applied" },
+  { key: "answerRegions", label: "Answers" },
+];
+
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
   { value: "radius", label: "Radar / radius" },
   { value: "thermometer", label: "Thermometer" },
@@ -68,6 +77,24 @@ type AnswerOption = {
   distanceMiles?: number;
 };
 
+type SavedMapState = {
+  version?: number;
+  constraints?: Constraint[];
+  selectedPoint?: LngLat;
+};
+
+function encodeMapState(constraints: Constraint[], selectedPoint: LngLat): string {
+  return btoa(JSON.stringify({ version: 2, constraints, selectedPoint }));
+}
+
+function decodeMapState(value: string): SavedMapState {
+  const trimmed = value.trim();
+  const hash = trimmed.includes("#") ? trimmed.slice(trimmed.indexOf("#") + 1) : trimmed;
+  const encoded = new URLSearchParams(hash.replace(/^#/, "")).get("state") ?? trimmed;
+  const parsed = JSON.parse(atob(encoded)) as Constraint[] | SavedMapState;
+  return Array.isArray(parsed) ? { version: 1, constraints: parsed } : parsed;
+}
+
 export function App() {
   const [mode, setMode] = useState<Mode>("seeker");
   const [selectedPoint, setSelectedPoint] = useState<LngLat>(vanNessMarket);
@@ -93,6 +120,14 @@ export function App() {
   const [thermoFromPreview, setThermoFromPreview] = useState<LngLat | null>(null);
   const [thermoToPreview, setThermoToPreview] = useState<LngLat | null>(null);
   const [showAllAnswers, setShowAllAnswers] = useState(false);
+  const [mapLayers, setMapLayers] = useState<Record<MapLayerKey, boolean>>({
+    stations: true,
+    currentQuestion: true,
+    appliedQuestions: true,
+    answerRegions: true,
+  });
+  const [shareStatus, setShareStatus] = useState("");
+  const [importText, setImportText] = useState("");
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -139,9 +174,13 @@ export function App() {
   ) as readonly CategoryKey[];
   const filteredTransitLines = useMemo(() => {
     const query = transitLineSearch.trim().toLowerCase();
-    if (!query) return lines;
-    return lines.filter((line) => line.toLowerCase().includes(query));
-  }, [lines, transitLineSearch]);
+    const matches = query ? lines.filter((line) => line.toLowerCase().includes(query)) : lines;
+    return [...matches].sort((a, b) => Number(b === transitLine) - Number(a === transitLine) || a.localeCompare(b, undefined, { numeric: true }));
+  }, [lines, transitLine, transitLineSearch]);
+  const transitLineCounts = useMemo(
+    () => new Map(lines.map((line) => [line, transitLineStopPointsForQuestion(line).length])),
+    [lines],
+  );
   const liveSelectedPoiId = questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId;
   const tentacleAnswerLegend = useMemo(
     () =>
@@ -433,6 +472,10 @@ export function App() {
     setTransitLineSearch("");
   }
 
+  function toggleMapLayer(key: MapLayerKey) {
+    setMapLayers((current) => ({ ...current, [key]: !current[key] }));
+  }
+
   function buildDraftConstraint({
     id,
     enabled,
@@ -576,9 +619,29 @@ export function App() {
     setDraftColor(nextQuestionColor(constraints));
   }
 
+  function applyImportedMapState(value: string) {
+    try {
+      const next = decodeMapState(value);
+      if (!Array.isArray(next.constraints)) throw new Error("Missing question stack.");
+      setConstraints(next.constraints);
+      setEditingConstraintId(null);
+      setDraftColor(nextQuestionColor(next.constraints));
+      if (next.selectedPoint) setSelectedPoint(next.selectedPoint);
+      setImportText("");
+      setShareStatus(`Imported ${next.constraints.length} question${next.constraints.length === 1 ? "" : "s"}.`);
+    } catch {
+      setShareStatus("Could not import that map link or state.");
+    }
+  }
+
   function exportState() {
-    const encoded = btoa(JSON.stringify(constraints));
-    void navigator.clipboard?.writeText(`${location.origin}${location.pathname}#state=${encoded}`);
+    const encoded = encodeMapState(constraints, selectedPoint);
+    const url = `${location.origin}${location.pathname}#state=${encoded}`;
+    setImportText(url);
+    void navigator.clipboard
+      ?.writeText(url)
+      .then(() => setShareStatus("Map link copied."))
+      .catch(() => setShareStatus("Map link ready to copy."));
   }
 
   function copyQuestion() {
@@ -691,14 +754,8 @@ export function App() {
   useEffect(() => {
     const state = new URLSearchParams(location.hash.replace(/^#/, "")).get("state");
     if (!state) return;
-    try {
-      const nextConstraints = JSON.parse(atob(state)) as Constraint[];
-      setConstraints(nextConstraints);
-      setDraftColor(nextQuestionColor(nextConstraints));
-      history.replaceState(null, "", location.pathname);
-    } catch {
-      // Ignore malformed state links.
-    }
+    applyImportedMapState(state);
+    history.replaceState(null, "", location.pathname);
   }, []);
 
   return (
@@ -711,6 +768,10 @@ export function App() {
           currentPoint={mode === "hider" ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
           answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
+          showStations={mapLayers.stations}
+          showCurrentQuestion={mapLayers.currentQuestion}
+          showAppliedQuestions={mapLayers.appliedQuestions}
+          showAnswerRegions={mapLayers.answerRegions}
           onSelectPoint={handleMapPointSelect}
           onDraftPointPreview={previewDraftPoint}
           onDraftPointChange={moveDraftPoint}
@@ -750,6 +811,21 @@ export function App() {
           </button>
         </div>
         {locationStatus && <p className="status-line">{locationStatus}</p>}
+
+        <section className="layer-toggle-row" aria-label="Map layers">
+          <span>Map layers</span>
+          {MAP_LAYER_LABELS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={mapLayers[key] ? "active" : ""}
+              onClick={() => toggleMapLayer(key)}
+              aria-pressed={mapLayers[key]}
+            >
+              {label}
+            </button>
+          ))}
+        </section>
 
         {mode === "seeker" && (
           <div className="panel-stack">
@@ -868,11 +944,11 @@ export function App() {
                   <>
                     <div className="transit-line-field">
                       <label>
-                        Line
+                        Search route
                         <input
                           type="search"
                           value={transitLineSearch}
-                          placeholder={`Selected: ${transitLine}`}
+                          placeholder="N, 38R, 14..."
                           onChange={(event) => setTransitLineSearch(event.target.value)}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" && filteredTransitLines[0]) {
@@ -887,7 +963,7 @@ export function App() {
                         <strong>{transitLine}</strong>
                         <em>{transitStopCount > 0 ? `${transitStopCount} route points` : "no route points"}</em>
                       </div>
-                      <div className="transit-line-picker" role="listbox" aria-label="Transit line">
+                      <div className="transit-line-list" role="listbox" aria-label="Transit line">
                         {filteredTransitLines.map((line) => (
                           <button
                             key={line}
@@ -896,7 +972,8 @@ export function App() {
                             onClick={() => selectTransitLine(line)}
                             aria-selected={line === transitLine}
                           >
-                            {line}
+                            <strong>{line}</strong>
+                            <span>{transitLineCounts.get(line) ?? 0} route points</span>
                           </button>
                         ))}
                         {filteredTransitLines.length === 0 && <span>No routes found</span>}
@@ -985,12 +1062,14 @@ export function App() {
               <div className="section-heading">
                 <h2>Question Stack</h2>
                 <div className="button-row">
-                  <button type="button" title="Export share link" onClick={exportState}>
-                    <ListChecks size={17} />
+                  <button type="button" className="icon-text-button" title="Copy map link" onClick={exportState}>
+                    <Clipboard size={17} />
+                    Share
                   </button>
                   <button
                     type="button"
                     title="Clear questions"
+                    className="square-icon-button"
                     onClick={() => {
                       setConstraints([]);
                       setEditingConstraintId(null);
@@ -1000,6 +1079,28 @@ export function App() {
                     <RotateCcw size={17} />
                   </button>
                 </div>
+              </div>
+              <div className="share-panel">
+                <label>
+                  Share / import map
+                  <input
+                    type="text"
+                    value={importText}
+                    placeholder="Paste a map link or copied state"
+                    onChange={(event) => setImportText(event.target.value)}
+                  />
+                </label>
+                <div className="button-row">
+                  <button type="button" className="icon-text-button" onClick={exportState}>
+                    <Clipboard size={17} />
+                    Copy link
+                  </button>
+                  <button type="button" className="icon-text-button" onClick={() => applyImportedMapState(importText)} disabled={!importText.trim()}>
+                    <ListChecks size={17} />
+                    Import
+                  </button>
+                </div>
+                {shareStatus && <p>{shareStatus}</p>}
               </div>
               <div className="constraint-list">
                 {constraints.length === 0 && <p className="empty">No questions applied yet.</p>}

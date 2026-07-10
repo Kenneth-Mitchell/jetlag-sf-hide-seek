@@ -12,6 +12,10 @@ type MapViewProps = {
   currentPoint?: LngLat;
   draftConstraint?: Constraint;
   answerPreviewOverlays?: ConstraintOverlay[];
+  showStations: boolean;
+  showCurrentQuestion: boolean;
+  showAppliedQuestions: boolean;
+  showAnswerRegions: boolean;
   onSelectPoint: (point: LngLat) => void;
   onDraftPointPreview?: (point: LngLat | null) => void;
   onDraftPointChange: (point: LngLat) => void;
@@ -227,6 +231,10 @@ export function MapView({
   currentPoint,
   draftConstraint,
   answerPreviewOverlays = [],
+  showStations,
+  showCurrentQuestion,
+  showAppliedQuestions,
+  showAnswerRegions,
   onSelectPoint,
   onDraftPointPreview,
   onDraftPointChange,
@@ -296,6 +304,7 @@ export function MapView({
     const group = appliedConstraintRef.current;
     if (!group) return;
     group.clearLayers();
+    if (!showAppliedQuestions) return;
     for (const overlay of buildConstraintOverlays(constraints)) {
       if (overlay.kind === "circle") {
         L.circle([overlay.center.lat, overlay.center.lng], {
@@ -321,7 +330,7 @@ export function MapView({
         ).addTo(group);
       }
     }
-  }, [constraints]);
+  }, [constraints, showAppliedQuestions]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -353,14 +362,18 @@ export function MapView({
     if (!group) return;
     group.clearLayers();
     if (!draftConstraint) return;
+    if (!showCurrentQuestion && !showAnswerRegions) return;
     const previewConstraint = withDraftDragPreview(draftConstraint, draftDragPoint, thermometerDrag);
-    const voronoiPreview = draftDragPoint && answerPreviewOverlays.length === 0 ? buildVoronoiPreviewOverlays(previewConstraint) : [];
+    const activeAnswerOverlays = showAnswerRegions ? answerPreviewOverlays : [];
+    const voronoiPreview = draftDragPoint && activeAnswerOverlays.length === 0 ? buildVoronoiPreviewOverlays(previewConstraint) : [];
     const overlays =
-      answerPreviewOverlays.length > 0
-        ? answerPreviewOverlays
+      activeAnswerOverlays.length > 0
+        ? activeAnswerOverlays
         : voronoiPreview.length > 0
           ? voronoiPreview
-          : buildConstraintOverlays([previewConstraint]);
+          : showCurrentQuestion
+            ? buildConstraintOverlays([previewConstraint])
+            : [];
     for (const overlay of overlays) {
       const mode = overlay.mode === "reference" ? "reference" : overlay.mode;
       if (overlay.kind === "circle") {
@@ -389,7 +402,7 @@ export function MapView({
         ).addTo(group);
       }
     }
-  }, [answerPreviewOverlays, draftConstraint, draftDragPoint, thermometerDrag]);
+  }, [answerPreviewOverlays, draftConstraint, draftDragPoint, showAnswerRegions, showCurrentQuestion, thermometerDrag]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -409,7 +422,7 @@ export function MapView({
       }
     };
 
-    if (!draftConstraint) {
+    if (!draftConstraint || !showCurrentQuestion) {
       setDraftDragPoint(null);
       setThermometerDrag(null);
       removePointMarker();
@@ -522,12 +535,14 @@ export function MapView({
     onThermoFromPreview,
     onThermoToChange,
     onThermoToPreview,
+    showCurrentQuestion,
   ]);
 
   useEffect(() => {
     const layers = layersRef.current;
     if (!layers) return;
     layers.clearLayers();
+    if (!showStations) return;
     for (const station of eliminated) {
       const [lng, lat] = station.geometry.coordinates;
       L.circle([lat, lng], {
@@ -550,7 +565,7 @@ export function MapView({
         interactive: false,
       }).addTo(layers);
     }
-  }, [candidates, eliminated]);
+  }, [candidates, eliminated, showStations]);
 
   return <div ref={elementRef} className="leaflet-host" />;
 }
