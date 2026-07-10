@@ -1,5 +1,6 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
+import { ANSWER_COLORS, QUESTION_COLORS, answerColor, nextQuestionColor } from "../src/lib/colors";
 import { buildConstraintOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
@@ -20,6 +21,14 @@ function randomPointNear(center: LngLat, radiusMiles: number, seed: number): Lng
 }
 
 describe("constraint engine", () => {
+  it("keeps default question and answer colors distinct from station-zone colors", () => {
+    const stationColors = new Set(["#0f766e", "#14b8a6"]);
+    expect(stationColors.has(nextQuestionColor([]))).toBe(false);
+    expect(stationColors.has(answerColor(0))).toBe(false);
+    expect(QUESTION_COLORS.some((color) => stationColors.has(color))).toBe(false);
+    expect(ANSWER_COLORS.some((color) => stationColors.has(color))).toBe(false);
+  });
+
   it("finds canonical nearest POIs from the frozen curated sets", () => {
     const answers = canonicalAnswers({ lat: 37.8008, lng: -122.3986 });
     expect((answers.nearest.aquariums as { name: string }).name).toBe("Aquarium of the Bay");

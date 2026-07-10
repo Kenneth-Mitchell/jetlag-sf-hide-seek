@@ -25,7 +25,7 @@ type ThermometerDrag = {
   point: LngLat;
 };
 
-function overlayStyle(mode: ConstraintOverlay["mode"], color = "#0f766e"): L.PathOptions {
+function overlayStyle(mode: ConstraintOverlay["mode"], color = "#7c3aed"): L.PathOptions {
   if (mode === "reference") {
     return {
       color,
@@ -378,7 +378,7 @@ export function MapView({
       return;
     }
 
-    const color = draftConstraint.color ?? "#0f766e";
+    const color = draftConstraint.color ?? "#7c3aed";
     if (draftConstraint.kind === "thermometer") {
       removePointMarker();
       if (!thermoFromMarkerRef.current) {

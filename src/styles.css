@@ -308,7 +308,7 @@ button.answer-chip {
 }
 
 button.answer-chip:hover {
-  border-color: var(--answer-color, #0f766e);
+  border-color: var(--answer-color, #7c3aed);
 }
 
 .answer-chip.selected-answer {
@@ -389,7 +389,7 @@ button.answer-chip:hover {
   gap: 8px;
   padding: 8px;
   border: 1px solid #edf1ef;
-  border-left: 5px solid #0f766e;
+  border-left: 5px solid #7c3aed;
   border-radius: 8px;
   background: #fbfdfb;
 }
