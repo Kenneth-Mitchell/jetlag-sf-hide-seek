@@ -206,6 +206,23 @@ h2 {
   gap: 10px;
 }
 
+.draft-color-field {
+  min-width: 0;
+}
+
+.draft-color-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+}
+
+.draft-color-control strong {
+  color: #65736f;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
 label {
   display: grid;
   gap: 5px;

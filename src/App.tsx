@@ -79,6 +79,7 @@ export function App() {
   const [dataCategory, setDataCategory] = useState<CategoryKey>("museums");
   const [locationStatus, setLocationStatus] = useState("");
   const [editingConstraintId, setEditingConstraintId] = useState<string | null>(null);
+  const [draftColor, setDraftColor] = useState(() => nextQuestionColor(readSavedConstraints()));
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -120,7 +121,7 @@ export function App() {
   const draftConstraint = buildDraftConstraint({
     id: editingConstraint?.id ?? "__draft__",
     enabled: editingConstraint?.enabled ?? true,
-    color: editingConstraint?.color ?? nextQuestionColor(constraints),
+    color: draftColor,
   });
   const previewConstraints = useMemo(
     () =>
@@ -238,19 +239,25 @@ export function App() {
     const next = buildDraftConstraint({
       id: existing?.id ?? makeId(),
       enabled: existing?.enabled ?? true,
-      color: existing?.color ?? nextQuestionColor(constraints),
+      color: draftColor,
     });
     if (existing) {
-      setConstraints((current) => current.map((constraint) => (constraint.id === existing.id ? next : constraint)));
+      const nextConstraints = constraints.map((constraint) => (constraint.id === existing.id ? next : constraint));
+      setConstraints(nextConstraints);
       setEditingConstraintId(null);
+      setDraftColor(nextQuestionColor(nextConstraints));
     } else {
-      setConstraints((current) => [next, ...current]);
+      const nextConstraints = [next, ...constraints];
+      setConstraints(nextConstraints);
+      setDraftColor(nextQuestionColor(nextConstraints));
     }
   }
 
   function editConstraint(constraint: Constraint) {
+    const constraintIndex = constraints.findIndex((item) => item.id === constraint.id);
     setEditingConstraintId(constraint.id);
     setQuestionKind(constraint.kind);
+    setDraftColor(constraintColor(constraint, constraintIndex >= 0 ? constraintIndex : 0));
     if ("point" in constraint) setSelectedPoint(constraint.point);
     if (constraint.kind === "radius") {
       setRadiusMiles(constraint.miles);
@@ -296,14 +303,24 @@ export function App() {
   }
 
   function removeConstraint(id: string) {
-    setConstraints((current) => current.filter((constraint) => constraint.id !== id));
-    if (editingConstraintId === id) setEditingConstraintId(null);
+    const nextConstraints = constraints.filter((constraint) => constraint.id !== id);
+    setConstraints(nextConstraints);
+    if (editingConstraintId === id) {
+      setEditingConstraintId(null);
+      setDraftColor(nextQuestionColor(nextConstraints));
+    }
   }
 
   function updateConstraintColor(id: string, color: string) {
     setConstraints((current) =>
       current.map((constraint) => (constraint.id === id ? { ...constraint, color } : constraint)),
     );
+    if (editingConstraintId === id) setDraftColor(color);
+  }
+
+  function cancelEditing() {
+    setEditingConstraintId(null);
+    setDraftColor(nextQuestionColor(constraints));
   }
 
   function exportState() {
@@ -358,7 +375,9 @@ export function App() {
     const state = new URLSearchParams(location.hash.replace(/^#/, "")).get("state");
     if (!state) return;
     try {
-      setConstraints(JSON.parse(atob(state)) as Constraint[]);
+      const nextConstraints = JSON.parse(atob(state)) as Constraint[];
+      setConstraints(nextConstraints);
+      setDraftColor(nextQuestionColor(nextConstraints));
       history.replaceState(null, "", location.pathname);
     } catch {
       // Ignore malformed state links.
@@ -423,6 +442,22 @@ export function App() {
                       </option>
                     ))}
                   </select>
+                </label>
+
+                <label className="draft-color-field">
+                  Color
+                  <span className="draft-color-control">
+                    <span className="color-picker" title="Question color">
+                      <span>Question color</span>
+                      <input
+                        type="color"
+                        value={draftColor}
+                        onChange={(event) => setDraftColor(event.target.value)}
+                        aria-label="Question color"
+                      />
+                    </span>
+                    <strong>{draftColor.toUpperCase()}</strong>
+                  </span>
                 </label>
 
                 {(questionKind === "matching" || questionKind === "measuring" || questionKind === "tentacles") && (
@@ -552,7 +587,7 @@ export function App() {
               {editingConstraintId && (
                 <div className="edit-banner">
                   <span>Editing an existing question</span>
-                  <button type="button" onClick={() => setEditingConstraintId(null)}>
+                  <button type="button" onClick={cancelEditing}>
                     <X size={17} />
                     Cancel
                   </button>
@@ -578,6 +613,7 @@ export function App() {
                     onClick={() => {
                       setConstraints([]);
                       setEditingConstraintId(null);
+                      setDraftColor(nextQuestionColor([]));
                     }}
                   >
                     <RotateCcw size={17} />
