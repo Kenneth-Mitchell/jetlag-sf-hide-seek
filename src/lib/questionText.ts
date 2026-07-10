@@ -52,7 +52,7 @@ export function formatQuestionDraft({
   if (kind === "district") {
     return "Are you in the same San Francisco Supervisorial District as me?";
   }
-  return `Does the ${transitLine.trim() || "[line]"} line stop in your hiding zone?`;
+  return `Does the ${transitLine.trim() || "[line]"} stop in your hiding zone?`;
 }
 
 export function formatAppliedQuestion(constraint: Constraint): string {

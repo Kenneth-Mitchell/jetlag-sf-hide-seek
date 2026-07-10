@@ -1,8 +1,9 @@
 import * as turf from "@turf/turf";
 import { constraintColor } from "./colors";
 import { districtAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./districts";
-import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, stationLines } from "./geo";
-import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
+import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
+import { getCategoryFeatures, snapshot } from "./snapshot";
+import { transitLineStopPointsForQuestion } from "./transit";
 import type { Constraint, LngLat, PointFeature } from "./types";
 
 export type ConstraintOverlay =
@@ -251,13 +252,10 @@ function districtOverlay(constraint: Extract<Constraint, { kind: "district" }>):
 }
 
 function transitLineOverlay(constraint: Extract<Constraint, { kind: "transit-line" }>): ConstraintOverlay[] {
-  const normalized = constraint.line.trim().toLowerCase();
-  if (!normalized) return [];
-  return validStations
-    .filter((station) => stationLines(station).some((line) => line.toLowerCase() === normalized))
-    .map((station) => ({
+  return transitLineStopPointsForQuestion(constraint.line)
+    .map((stop) => ({
       kind: "circle" as const,
-      center: lngLatFromFeature(station),
+      center: lngLatFromFeature(stop),
       radiusMiles: snapshot.hideRadiusMiles,
       mode: constraint.answer === "yes" ? ("keep" as const) : ("exclude" as const),
     }));

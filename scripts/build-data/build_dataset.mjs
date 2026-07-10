@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -9,6 +10,10 @@ const DEFAULT_WORKBOOK = "/Users/kenneth/Downloads/JLH&S Sheets San Francisco.xl
 const WORKBOOK_PATH = process.env.JETLAG_SF_XLSX ?? DEFAULT_WORKBOOK;
 const OUT_PATH = path.join(ROOT, "src", "data", "sf-snapshot.json");
 const CACHE_PATH = path.join(ROOT, "scripts", "build-data", "geocode-cache.json");
+const GTFS_CACHE_PATH = path.join(ROOT, "scripts", "build-data", "sfmta-gtfs.zip");
+const SFMTA_GTFS_URL =
+  "https://data.sfgov.org/api/views/dni7-qpv3/files/efd513e7-b307-4515-9feb-88aa4106bb95";
+const SFMTA_GTFS_FILENAME = "SFMTA_GTFS_20260620_20260828v3.zip";
 const SNAPSHOT_DATE = "2026-07-10";
 const HIDE_RADIUS_MILES = 0.25;
 
@@ -200,6 +205,156 @@ function checksum(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function parseCsvLine(line) {
+  const values = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quoted) {
+      if (char === '"' && line[index + 1] === '"') {
+        value += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        value += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ",") {
+      values.push(value);
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+  values.push(value);
+  return values;
+}
+
+function forEachCsvRecord(text, callback) {
+  let headers;
+  let start = 0;
+  for (let index = 0; index <= text.length; index += 1) {
+    if (index !== text.length && text[index] !== "\n") continue;
+    let line = text.slice(start, index);
+    if (line.endsWith("\r")) line = line.slice(0, -1);
+    start = index + 1;
+    if (!line) continue;
+    const values = parseCsvLine(line);
+    if (!headers) {
+      headers = values;
+      continue;
+    }
+    callback(values, headers);
+  }
+}
+
+function readGtfsText(fileName) {
+  return execFileSync("unzip", ["-p", GTFS_CACHE_PATH, fileName], {
+    encoding: "utf8",
+    maxBuffer: 180 * 1024 * 1024,
+  });
+}
+
+async function ensureGtfsCache() {
+  try {
+    const stat = await fs.stat(GTFS_CACHE_PATH);
+    if (stat.size > 1_000_000) return;
+  } catch {
+    // Download below.
+  }
+  const response = await fetch(SFMTA_GTFS_URL);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch SFMTA GTFS: ${response.status} ${response.statusText}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  await fs.writeFile(GTFS_CACHE_PATH, buffer);
+}
+
+function readGtfsTable(fileName) {
+  const rows = [];
+  forEachCsvRecord(readGtfsText(fileName), (values, headers) => {
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] ?? "";
+    });
+    rows.push(row);
+  });
+  return rows;
+}
+
+function buildTransitLineStopsLayer() {
+  const routes = new Map();
+  for (const row of readGtfsTable("routes.txt")) {
+    const shortName = String(row.route_short_name ?? "").trim();
+    if (row.route_id && shortName) {
+      routes.set(String(row.route_id), {
+        shortName,
+        longName: String(row.route_long_name ?? "").trim(),
+        type: row.route_type === "" ? undefined : Number(row.route_type),
+      });
+    }
+  }
+
+  const tripRoutes = new Map();
+  for (const row of readGtfsTable("trips.txt")) {
+    if (row.trip_id && row.route_id && routes.has(String(row.route_id))) {
+      tripRoutes.set(String(row.trip_id), String(row.route_id));
+    }
+  }
+
+  const stopRoutes = new Map();
+  let stopTimesTripIndex;
+  let stopTimesStopIndex;
+  forEachCsvRecord(readGtfsText("stop_times.txt"), (values, headers) => {
+    stopTimesTripIndex ??= headers.indexOf("trip_id");
+    stopTimesStopIndex ??= headers.indexOf("stop_id");
+    const tripId = values[stopTimesTripIndex];
+    const stopId = values[stopTimesStopIndex];
+    const routeId = tripRoutes.get(tripId);
+    if (!routeId || !stopId) return;
+    const route = routes.get(routeId);
+    if (!route) return;
+    const routeSet = stopRoutes.get(stopId) ?? new Set();
+    routeSet.add(route.shortName);
+    stopRoutes.set(stopId, routeSet);
+  });
+
+  const features = readGtfsTable("stops.txt").flatMap((row) => {
+    const stopId = String(row.stop_id ?? "").trim();
+    const lines = [...(stopRoutes.get(stopId) ?? [])].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const lat = asNumber(row.stop_lat);
+    const lng = asNumber(row.stop_lon);
+    if (!stopId || lines.length === 0 || lat === undefined || lng === undefined) return [];
+    return [
+      {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lng, lat] },
+        properties: {
+          id: `transit-line-stop:sfmta:${stopId}`,
+          sourceId: stopId,
+          name: String(row.stop_name ?? "").trim(),
+          category: "transit-line-stop",
+          sourceSheet: "SFMTA GTFS Production",
+          enabled: true,
+          referenceOnly: true,
+          agency: "SFMTA",
+          stopID: stopId,
+          stopCode: String(row.stop_code ?? "").trim(),
+          lines,
+        },
+      },
+    ];
+  });
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+}
+
 function extractMapsCoordinates(url) {
   const patterns = [
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
@@ -388,6 +543,7 @@ async function fetchGeoJson(url) {
 async function main() {
   await fs.mkdir(path.dirname(OUT_PATH), { recursive: true });
   const cache = JSON.parse(await fs.readFile(CACHE_PATH, "utf8").catch(() => "{}"));
+  const existingSnapshot = JSON.parse(await fs.readFile(OUT_PATH, "utf8").catch(() => "null"));
   const workbook = XLSX.readFile(WORKBOOK_PATH, { cellDates: true });
   const warnings = [];
   const layers = {};
@@ -403,9 +559,26 @@ async function main() {
     };
   }
 
+  await ensureGtfsCache();
+  const transitLineStops = buildTransitLineStopsLayer();
+  layers.transitLineStops = transitLineStops;
+  integrity.transitLineStops = {
+    source: SFMTA_GTFS_FILENAME,
+    features: transitLineStops.features.length,
+    checksum: checksum(JSON.stringify(transitLineStops)),
+  };
+  warnings.push("Transit Line uses SFMTA GTFS stop lists for SFMTA routes; non-SFMTA lines fall back to curated valid-station line metadata.");
+
   const geometries = {};
   for (const [key, url] of Object.entries(GEOMETRY_SOURCES)) {
-    const geojson = await fetchGeoJson(url);
+    let geojson;
+    try {
+      geojson = await fetchGeoJson(url);
+    } catch (error) {
+      geojson = existingSnapshot?.geometries?.[key];
+      if (!geojson) throw error;
+      console.warn(`WARN Reusing existing ${key} geometry because ${url} could not be fetched.`);
+    }
     geometries[key] = geojson;
     integrity[key] = {
       source: url,
@@ -423,6 +596,8 @@ async function main() {
     sources: {
       workbook: "JLH&S Sheets San Francisco.xlsx",
       rules: "Jet Lag H&S SF Rules Modifications.md",
+      sfmtaGtfs: SFMTA_GTFS_URL,
+      sfmtaGtfsFile: SFMTA_GTFS_FILENAME,
       playableArea: GEOMETRY_SOURCES.playableArea,
       supervisorDistricts: GEOMETRY_SOURCES.supervisorDistricts,
     },

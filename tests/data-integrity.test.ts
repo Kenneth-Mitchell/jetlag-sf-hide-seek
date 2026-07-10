@@ -15,12 +15,14 @@ describe("frozen SF snapshot", () => {
     expect(snapshot.layers.hospitals.features).toHaveLength(16);
     expect(snapshot.layers.foreignConsulates.features).toHaveLength(38);
     expect(snapshot.layers.farmersMarkets.features).toHaveLength(17);
+    expect(snapshot.layers.transitLineStops.features.length).toBeGreaterThan(3000);
   });
 
   it("records the known source-of-truth caveats", () => {
     expect(snapshot.warnings.some((warning) => warning.includes("Dog Parks"))).toBe(true);
     expect(snapshot.warnings.some((warning) => warning.includes("Farmers Markets"))).toBe(true);
     expect(snapshot.warnings.some((warning) => warning.includes("All Muni Stops"))).toBe(true);
+    expect(snapshot.warnings.some((warning) => warning.includes("Transit Line uses SFMTA GTFS"))).toBe(true);
   });
 
   it("contains current supervisor district and playable-area geometry", () => {

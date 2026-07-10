@@ -8,6 +8,7 @@ import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPo
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
+import { allTransitLineOptions, transitLineStopPointsForQuestion } from "./lib/transit";
 import type { CategoryKey, Constraint, LngLat, PointFeature } from "./lib/types";
 import { MapView } from "./components/MapView";
 
@@ -41,20 +42,6 @@ function makeId() {
 
 function pointLabel(point: LngLat): string {
   return `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
-}
-
-function lineOptions(): string[] {
-  const lines = new Set<string>();
-  for (const station of validStations) {
-    for (const field of ["associated_lines", "other_systems", "primary_system"] as const) {
-      String(station.properties[field] ?? "")
-        .split(/[,;/]/)
-        .map((part) => part.trim())
-        .filter(Boolean)
-        .forEach((line) => lines.add(line));
-    }
-  }
-  return [...lines].sort((a, b) => a.localeCompare(b));
 }
 
 function geolocationErrorMessage(error: GeolocationPositionError): string {
@@ -136,7 +123,7 @@ export function App() {
     [categoryFeatures, selectedPoint, tentacleRadius],
   );
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
-  const lines = useMemo(lineOptions, []);
+  const lines = useMemo(allTransitLineOptions, []);
   const liveSelectedPoiId = questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId;
   const tentacleAnswerLegend = useMemo(
     () =>
@@ -192,7 +179,13 @@ export function App() {
       }),
     [category, liveSelectedPoint, liveThermoFrom, liveThermoTo, questionKind, radiusMiles, tentacleRadius, transitLine],
   );
-  const canApplyQuestion = questionKind !== "tentacles" || tentacleAnswerFeatures.length > 0;
+  const transitStopCount = useMemo(
+    () => (questionKind === "transit-line" ? transitLineStopPointsForQuestion(transitLine).length : 0),
+    [questionKind, transitLine],
+  );
+  const canApplyQuestion =
+    (questionKind !== "tentacles" || tentacleAnswerFeatures.length > 0) &&
+    (questionKind !== "transit-line" || transitStopCount > 0);
   const editingConstraint = constraints.find((constraint) => constraint.id === editingConstraintId);
   const draftConstraint = useMemo(
     () =>
@@ -351,10 +344,16 @@ export function App() {
       }));
     }
     return [
-      { label: "Yes", detail: `${transitLine || "line"} stops in hiding zone` },
-      { label: "No", detail: `${transitLine || "line"} does not stop there` },
+      {
+        label: "Yes",
+        detail:
+          transitStopCount > 0
+            ? `a ${transitLine || "line"} stop is within 1/4 mi of the chosen station`
+            : "no stops found for this line",
+      },
+      { label: "No", detail: `${transitLine || "line"} has no stop within 1/4 mi of the chosen station` },
     ];
-  }, [category, districtAnswerLegend, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine]);
+  }, [category, districtAnswerLegend, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine, transitStopCount]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);

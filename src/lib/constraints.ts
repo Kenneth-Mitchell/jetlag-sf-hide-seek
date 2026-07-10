@@ -1,6 +1,7 @@
 import { CATEGORY_LABELS } from "../data/rules";
-import { distanceMiles, distanceToFeatureMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, nearestOtherDistance, pointInFeatureCollection, sampleStationZone, stationLines } from "./geo";
+import { distanceMiles, distanceToFeatureMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, nearestOtherDistance, pointInFeatureCollection, sampleStationZone } from "./geo";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
+import { transitLineStopsInStationZone as stationHasTransitLineStop } from "./transit";
 import type { CandidateStation, Constraint, LngLat, PointFeature } from "./types";
 
 function stationCenter(station: CandidateStation): LngLat {
@@ -41,18 +42,7 @@ function districtAt(point: LngLat): string | undefined {
   return district ? String(district) : undefined;
 }
 
-export function transitLineStopsInStationZone(station: CandidateStation, line: string): boolean {
-  const normalized = line.trim().toLowerCase();
-  if (!normalized) return false;
-  if (stationLines(station).some((candidate) => candidate.toLowerCase() === normalized)) {
-    return true;
-  }
-  const center = stationCenter(station);
-  return validStations.some((stop) => {
-    if (!stationLines(stop).some((candidate) => candidate.toLowerCase() === normalized)) return false;
-    return distanceMiles(center, stationCenter(stop)) <= hideRadius();
-  });
-}
+export { transitLineStopsInStationZone } from "./transit";
 
 export function stationSurvivesConstraint(station: CandidateStation, constraint: Constraint): boolean {
   if (!constraint.enabled) return true;
@@ -102,7 +92,7 @@ export function stationSurvivesConstraint(station: CandidateStation, constraint:
       return constraint.answer === "yes" ? districts.has(seekerDistrict) : [...districts].some((d) => d !== seekerDistrict);
     }
     case "transit-line": {
-      const result = transitLineStopsInStationZone(station, constraint.line);
+      const result = stationHasTransitLineStop(station, constraint.line);
       return constraint.answer === "yes" ? result : !result;
     }
   }
@@ -159,8 +149,8 @@ export function pointSatisfiesConstraint(point: LngLat, constraint: Constraint):
         (station) => distanceMiles(point, stationCenter(station)) <= hideRadius(),
       );
       if (possibleStations.length === 0) return false;
-      const yesPossible = possibleStations.some((station) => transitLineStopsInStationZone(station, constraint.line));
-      const noPossible = possibleStations.some((station) => !transitLineStopsInStationZone(station, constraint.line));
+      const yesPossible = possibleStations.some((station) => stationHasTransitLineStop(station, constraint.line));
+      const noPossible = possibleStations.some((station) => !stationHasTransitLineStop(station, constraint.line));
       return constraint.answer === "yes" ? yesPossible : noPossible;
     }
   }
