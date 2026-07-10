@@ -1,5 +1,6 @@
 import * as turf from "@turf/turf";
 import { constraintColor } from "./colors";
+import { districtAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./districts";
 import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, stationLines } from "./geo";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
 import type { Constraint, LngLat, PointFeature } from "./types";
@@ -37,6 +38,12 @@ export type ConstraintOverlay =
 
 export type TentacleAnswerPreview = {
   featureId: string;
+  color: string;
+  selected: boolean;
+};
+
+export type DistrictAnswerPreview = {
+  district: string;
   color: string;
   selected: boolean;
 };
@@ -226,16 +233,12 @@ function tentaclesOverlay(constraint: Extract<Constraint, { kind: "tentacles" }>
 }
 
 function districtOverlay(constraint: Extract<Constraint, { kind: "district" }>): ConstraintOverlay[] {
-  const point = turf.point([constraint.point.lng, constraint.point.lat]);
-  const district = snapshot.geometries.supervisorDistricts.features.find((feature) => {
-    if (feature.geometry.type !== "Polygon" && feature.geometry.type !== "MultiPolygon") return false;
-    return turf.booleanPointInPolygon(point, feature as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>);
-  });
-  if (!district || (district.geometry.type !== "Polygon" && district.geometry.type !== "MultiPolygon")) return [];
+  const district = districtAtPoint(constraint.point);
+  if (!district) return [];
   return [
     {
       kind: "polygon",
-      feature: district as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
+      feature: district,
       mode: constraint.answer === "yes" ? "keep" : "exclude",
     },
   ];
@@ -338,5 +341,30 @@ export function buildTentacleAnswerPreviewOverlays(
       color: constraint.color,
       weight: 2.4,
     },
+  ];
+}
+
+export function buildDistrictAnswerPreviewOverlays(answers: DistrictAnswerPreview[]): ConstraintOverlay[] {
+  const answerByDistrict = new Map(answers.map((answer) => [answer.district, answer]));
+  const cells = supervisorDistrictFeatures().flatMap((feature): Array<ConstraintOverlay & { selected: boolean }> => {
+    const district = districtNumberFromFeature(feature);
+    const answer = district ? answerByDistrict.get(district) : undefined;
+    if (!answer) return [];
+    return [
+      {
+        kind: "polygon",
+        feature,
+        mode: "keep",
+        color: answer.color,
+        fillOpacity: answer.selected ? 0.23 : 0.14,
+        weight: answer.selected ? 3.4 : 1.9,
+        selected: answer.selected,
+      },
+    ];
+  });
+
+  return [
+    ...cells.filter((cell) => !cell.selected).map(({ selected: _selected, ...cell }) => cell),
+    ...cells.filter((cell) => cell.selected).map(({ selected: _selected, ...cell }) => cell),
   ];
 }

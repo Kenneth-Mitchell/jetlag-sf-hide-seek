@@ -2,8 +2,9 @@ import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, Pencil, RotateCc
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
-import { buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
+import { buildDistrictAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
+import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./lib/districts";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
@@ -147,6 +148,22 @@ export function App() {
       })),
     [liveSelectedPoiId, tentacleAnswerFeatures],
   );
+  const liveDistrictNumber = districtNumberAtPoint(liveSelectedPoint);
+  const districtAnswerLegend = useMemo(
+    () =>
+      supervisorDistrictFeatures().map((feature, index) => {
+        const district = districtNumberFromFeature(feature) ?? String(index + 1);
+        const supervisor = districtDetailFromFeature(feature);
+        return {
+          color: answerColor(index),
+          district,
+          label: districtLabelFromFeature(feature),
+          detail: supervisor ? `${supervisor}` : "SF Supervisorial District",
+          selected: district === liveDistrictNumber,
+        };
+      }),
+    [liveDistrictNumber],
+  );
   const questionDraft = useMemo(
     () =>
       formatQuestionDraft({
@@ -236,16 +253,27 @@ export function App() {
     [constraints, editingConstraint],
   );
   const answerPreviewOverlays = useMemo(() => {
-    if (questionKind !== "tentacles" || liveDraftConstraint.kind !== "tentacles") return [];
-    return buildTentacleAnswerPreviewOverlays(
-      liveDraftConstraint,
-      tentacleAnswerLegend.map(({ color, feature, selected }) => ({
-        color,
-        featureId: feature.properties.id,
-        selected,
-      })),
-    );
-  }, [liveDraftConstraint, questionKind, tentacleAnswerLegend]);
+    if (questionKind === "tentacles" && liveDraftConstraint.kind === "tentacles") {
+      return buildTentacleAnswerPreviewOverlays(
+        liveDraftConstraint,
+        tentacleAnswerLegend.map(({ color, feature, selected }) => ({
+          color,
+          featureId: feature.properties.id,
+          selected,
+        })),
+      );
+    }
+    if (questionKind === "district" && liveDraftConstraint.kind === "district") {
+      return buildDistrictAnswerPreviewOverlays(
+        districtAnswerLegend.map(({ color, district, selected }) => ({
+          color,
+          district,
+          selected,
+        })),
+      );
+    }
+    return [];
+  }, [districtAnswerLegend, liveDraftConstraint, questionKind, tentacleAnswerLegend]);
   const candidates = useMemo(() => applyConstraints(previewConstraints), [previewConstraints]);
   const answerOptions = useMemo<AnswerOption[]>(() => {
     if (questionKind === "radius") {
@@ -291,16 +319,18 @@ export function App() {
       }));
     }
     if (questionKind === "district") {
-      return [
-        { label: "Yes", detail: "same supervisorial district" },
-        { label: "No", detail: "different supervisorial district" },
-      ];
+      return districtAnswerLegend.map(({ color, detail, label, selected }) => ({
+        label,
+        detail: selected ? `${detail} · marked point` : detail,
+        color,
+        selected,
+      }));
     }
     return [
       { label: "Yes", detail: `${transitLine || "line"} stops in hiding zone` },
       { label: "No", detail: `${transitLine || "line"} does not stop there` },
     ];
-  }, [category, categoryFeatures, liveSelectedPoint, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine]);
+  }, [category, categoryFeatures, districtAnswerLegend, liveSelectedPoint, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
@@ -794,6 +824,7 @@ export function App() {
                 <div className="answer-chip-list">
                   {answerOptions.map((option) => {
                     const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
+                    const chipClassName = `answer-chip${option.selected ? " selected-answer" : ""}`;
                     const content = (
                       <>
                         {option.color && <i className="answer-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />}
@@ -805,14 +836,14 @@ export function App() {
                       <button
                         key={`${option.label}-${option.detail}`}
                         type="button"
-                        className={`answer-chip${option.selected ? " selected-answer" : ""}`}
+                        className={chipClassName}
                         style={chipStyle}
                         onClick={() => setSelectedPoiId(option.value ?? "")}
                       >
                         {content}
                       </button>
                     ) : (
-                      <span key={`${option.label}-${option.detail}`} className="answer-chip" style={chipStyle}>
+                      <span key={`${option.label}-${option.detail}`} className={chipClassName} style={chipStyle}>
                         {content}
                       </span>
                     );

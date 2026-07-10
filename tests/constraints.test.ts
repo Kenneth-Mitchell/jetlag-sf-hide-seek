@@ -1,8 +1,9 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
 import { ANSWER_COLORS, QUESTION_COLORS, answerColor, nextQuestionColor } from "../src/lib/colors";
-import { buildConstraintOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
+import { buildConstraintOverlays, buildDistrictAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
+import { districtNumberFromFeature, supervisorDistrictFeatures } from "../src/lib/districts";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../src/lib/types";
@@ -172,6 +173,22 @@ describe("constraint engine", () => {
     expect(polygons).toHaveLength(3);
     expect(polygons.map((overlay) => overlay.color)).toEqual(["#111111", "#333333", "#222222"]);
     expect(overlays.some((overlay) => overlay.kind === "circle" && overlay.color === "#123456")).toBe(true);
+  });
+
+  it("builds colored supervisorial district previews", () => {
+    const districts = supervisorDistrictFeatures();
+    const overlays = buildDistrictAnswerPreviewOverlays(
+      districts.map((feature, index) => ({
+        district: districtNumberFromFeature(feature) ?? String(index + 1),
+        color: answerColor(index),
+        selected: index === 4,
+      })),
+    );
+    const polygons = overlays.filter((overlay) => overlay.kind === "polygon");
+    expect(polygons).toHaveLength(11);
+    expect(new Set(polygons.map((overlay) => overlay.color)).size).toBe(11);
+    expect(polygons.at(-1)?.color).toBe(answerColor(4));
+    expect(polygons.at(-1)?.weight).toBeGreaterThan(polygons[0].weight ?? 0);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {
