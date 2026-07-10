@@ -1,4 +1,5 @@
 import * as turf from "@turf/turf";
+import { constraintColor } from "./colors";
 import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, stationLines } from "./geo";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
 import type { Constraint, LngLat, PointFeature } from "./types";
@@ -9,16 +10,19 @@ export type ConstraintOverlay =
       center: LngLat;
       radiusMiles: number;
       mode: "keep" | "exclude" | "reference";
+      color?: string;
     }
   | {
       kind: "polygon";
       feature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
       mode: "keep" | "exclude" | "reference";
+      color?: string;
     }
   | {
       kind: "line";
       coordinates: LngLat[];
       mode: "keep" | "exclude" | "reference";
+      color?: string;
     };
 
 function overlayBbox(): [number, number, number, number] {
@@ -244,32 +248,34 @@ function transitLineOverlay(constraint: Extract<Constraint, { kind: "transit-lin
 }
 
 export function buildConstraintOverlays(constraints: Constraint[]): ConstraintOverlay[] {
-  return constraints.flatMap((constraint) => {
+  return constraints.flatMap((constraint, index) => {
     if (!constraint.enabled) return [];
+    const color = constraintColor(constraint, index);
+    const tint = (overlays: ConstraintOverlay[]) => overlays.map((overlay) => ({ ...overlay, color }));
     switch (constraint.kind) {
       case "radius":
-        return [
+        return tint([
           {
             kind: "circle",
             center: constraint.point,
             radiusMiles: constraint.miles,
             mode: constraint.answer === "inside" ? "keep" : "exclude",
           },
-        ];
+        ]);
       case "thermometer":
-        return thermometerOverlay(constraint);
+        return tint(thermometerOverlay(constraint));
       case "matching":
-        return matchingOverlay(constraint);
+        return tint(matchingOverlay(constraint));
       case "measuring":
-        return measuringOverlay(constraint);
+        return tint(measuringOverlay(constraint));
       case "tentacles":
-        return tentaclesOverlay(constraint);
+        return tint(tentaclesOverlay(constraint));
       case "district":
-        return districtOverlay(constraint);
+        return tint(districtOverlay(constraint));
       case "station-name-length":
-        return stationNameLengthOverlay(constraint);
+        return tint(stationNameLengthOverlay(constraint));
       case "transit-line":
-        return transitLineOverlay(constraint);
+        return tint(transitLineOverlay(constraint));
     }
   });
 }

@@ -1,6 +1,7 @@
 import { Clipboard, Crosshair, Eye, EyeOff, ListChecks, MapPin, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES } from "./data/rules";
+import { constraintColor, nextQuestionColor } from "./lib/colors";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { distanceMiles, lngLatFromFeature, nearestFeature } from "./lib/geo";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
@@ -107,7 +108,7 @@ export function App() {
 
   function addConstraint() {
     const label = QUESTION_KINDS.find((kind) => kind.value === questionKind)?.label ?? questionKind;
-    const base = { id: makeId(), label, enabled: true };
+    const base = { id: makeId(), label, enabled: true, color: nextQuestionColor(constraints) };
     let next: Constraint;
     if (questionKind === "radius") {
       next = { ...base, kind: "radius", point: selectedPoint, miles: radiusMiles, answer: radiusAnswer };
@@ -146,6 +147,12 @@ export function App() {
 
   function removeConstraint(id: string) {
     setConstraints((current) => current.filter((constraint) => constraint.id !== id));
+  }
+
+  function updateConstraintColor(id: string, color: string) {
+    setConstraints((current) =>
+      current.map((constraint) => (constraint.id === id ? { ...constraint, color } : constraint)),
+    );
   }
 
   function exportState() {
@@ -368,8 +375,23 @@ export function App() {
               </div>
               <div className="constraint-list">
                 {constraints.length === 0 && <p className="empty">No questions applied yet.</p>}
-                {constraints.map((constraint) => (
-                  <article key={constraint.id} className={!constraint.enabled ? "muted-row" : ""}>
+                {constraints.map((constraint, index) => {
+                  const color = constraintColor(constraint, index);
+                  return (
+                  <article
+                    key={constraint.id}
+                    className={!constraint.enabled ? "muted-row" : ""}
+                    style={{ borderLeftColor: color }}
+                  >
+                    <label className="color-picker" title="Question color">
+                      <span>Color</span>
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(event) => updateConstraintColor(constraint.id, event.target.value)}
+                        aria-label="Question color"
+                      />
+                    </label>
                     <button type="button" title="Toggle question" onClick={() => toggleConstraint(constraint.id)}>
                       {constraint.enabled ? <Eye size={17} /> : <EyeOff size={17} />}
                     </button>
@@ -378,7 +400,8 @@ export function App() {
                       <Trash2 size={17} />
                     </button>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </section>
 

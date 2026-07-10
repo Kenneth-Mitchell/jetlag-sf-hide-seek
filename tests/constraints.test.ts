@@ -114,6 +114,31 @@ describe("constraint engine", () => {
     expect(overlays.every((overlay) => overlay.kind !== "line" || overlay.coordinates.length >= 2)).toBe(true);
   });
 
+  it("carries question colors into map overlays", () => {
+    const constraints: Constraint[] = [{
+      id: "purple-radius",
+      kind: "radius",
+      label: "Radius",
+      point: vanNessMarket,
+      miles: 1,
+      answer: "inside",
+      enabled: true,
+      color: "#123456",
+    }, {
+      id: "fallback-radius",
+      kind: "radius",
+      label: "Radius",
+      point: { lat: 37.78, lng: -122.43 },
+      miles: 0.5,
+      answer: "inside",
+      enabled: true,
+    }];
+    const overlays = buildConstraintOverlays(constraints);
+    expect(overlays[0].color).toBe("#123456");
+    expect(overlays[1].color).toBeTruthy();
+    expect(overlays[1].color).not.toBe(overlays[0].color);
+  });
+
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {
     const fixtures = validStations.filter((_, index) => index % 17 === 0).slice(0, 10);
     for (const [index, fixture] of fixtures.entries()) {

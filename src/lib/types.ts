@@ -64,74 +64,59 @@ export type CandidateStation = PointFeature & {
   };
 };
 
-export type Constraint =
-  | {
-      id: string;
-      kind: "radius";
-      label: string;
-      point: LngLat;
-      miles: number;
-      answer: "inside" | "outside";
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "thermometer";
-      label: string;
-      from: LngLat;
-      to: LngLat;
-      answer: "warmer" | "colder" | "same";
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "matching";
-      label: string;
-      point: LngLat;
-      category: CategoryKey;
-      answer: "yes" | "no";
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "measuring";
-      label: string;
-      point: LngLat;
-      category: CategoryKey;
-      answer: "closer" | "farther";
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "tentacles";
-      label: string;
-      point: LngLat;
-      category: CategoryKey;
-      selectedPoiId: string;
-      radiusMiles: number;
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "district";
-      label: string;
-      point: LngLat;
-      answer: "yes" | "no";
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "station-name-length";
-      label: string;
-      point: LngLat;
-      answer: "yes" | "no";
-      enabled: boolean;
-    }
-  | {
-      id: string;
-      kind: "transit-line";
-      label: string;
-      line: string;
-      answer: "yes" | "no";
-      enabled: boolean;
-    };
+type ConstraintBase = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  color?: string;
+};
+
+export type Constraint = ConstraintBase &
+  (
+    | {
+        kind: "radius";
+        point: LngLat;
+        miles: number;
+        answer: "inside" | "outside";
+      }
+    | {
+        kind: "thermometer";
+        from: LngLat;
+        to: LngLat;
+        answer: "warmer" | "colder" | "same";
+      }
+    | {
+        kind: "matching";
+        point: LngLat;
+        category: CategoryKey;
+        answer: "yes" | "no";
+      }
+    | {
+        kind: "measuring";
+        point: LngLat;
+        category: CategoryKey;
+        answer: "closer" | "farther";
+      }
+    | {
+        kind: "tentacles";
+        point: LngLat;
+        category: CategoryKey;
+        selectedPoiId: string;
+        radiusMiles: number;
+      }
+    | {
+        kind: "district";
+        point: LngLat;
+        answer: "yes" | "no";
+      }
+    | {
+        kind: "station-name-length";
+        point: LngLat;
+        answer: "yes" | "no";
+      }
+    | {
+        kind: "transit-line";
+        line: string;
+        answer: "yes" | "no";
+      }
+  );

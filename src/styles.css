@@ -249,13 +249,44 @@ textarea {
 .data-list article,
 .answer-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 8px;
   border: 1px solid #edf1ef;
+  border-left: 5px solid #0f766e;
   border-radius: 8px;
   background: #fbfdfb;
+}
+
+.color-picker {
+  display: block;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid #cbd5d6;
+  cursor: pointer;
+}
+
+.color-picker span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.color-picker input[type="color"] {
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transform: translate(-7px, -7px);
+  cursor: pointer;
 }
 
 .constraint-list article span,
@@ -276,6 +307,7 @@ textarea {
 .data-list article,
 .answer-row {
   grid-template-columns: 1fr auto;
+  border-left: 1px solid #edf1ef;
 }
 
 .muted-row {

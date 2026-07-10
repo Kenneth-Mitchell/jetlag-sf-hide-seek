@@ -13,10 +13,10 @@ type MapViewProps = {
   onSelectPoint: (point: LngLat) => void;
 };
 
-function overlayStyle(mode: ConstraintOverlay["mode"]): L.PathOptions {
+function overlayStyle(mode: ConstraintOverlay["mode"], color = "#0f766e"): L.PathOptions {
   if (mode === "reference") {
     return {
-      color: "#2563eb",
+      color,
       weight: 2,
       dashArray: "6 6",
       fillOpacity: 0,
@@ -24,17 +24,17 @@ function overlayStyle(mode: ConstraintOverlay["mode"]): L.PathOptions {
   }
   if (mode === "exclude") {
     return {
-      color: "#b91c1c",
+      color,
       weight: 2.2,
       dashArray: "7 6",
-      fillColor: "#ef4444",
+      fillColor: color,
       fillOpacity: 0.12,
     };
   }
   return {
-    color: "#0f766e",
+    color,
     weight: 2.2,
-    fillColor: "#14b8a6",
+    fillColor: color,
     fillOpacity: 0.2,
   };
 }
@@ -81,20 +81,20 @@ export function MapView({ candidates, eliminated, constraints, selectedPoint, on
     for (const overlay of buildConstraintOverlays(constraints)) {
       if (overlay.kind === "circle") {
         L.circle([overlay.center.lat, overlay.center.lng], {
-          ...overlayStyle(overlay.mode),
+          ...overlayStyle(overlay.mode, overlay.color),
           radius: milesToMeters(overlay.radiusMiles),
           interactive: false,
         }).addTo(group);
       } else if (overlay.kind === "polygon") {
         L.geoJSON(overlay.feature, {
           interactive: false,
-          style: overlayStyle(overlay.mode),
+          style: overlayStyle(overlay.mode, overlay.color),
         }).addTo(group);
       } else {
         L.polyline(
           overlay.coordinates.map((coordinate) => [coordinate.lat, coordinate.lng]),
           {
-            ...overlayStyle(overlay.mode),
+            ...overlayStyle(overlay.mode, overlay.color),
             interactive: false,
           },
         ).addTo(group);

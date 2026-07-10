@@ -23,6 +23,7 @@ Implemented:
   - half-plane and bisector for thermometer
   - Voronoi cells for matching, tentacles, and station-name-length questions
   - district polygons for supervisorial district questions
+- Per-question overlay colors with editable color swatches in the question stack.
 - One-tap current-location reference point using the browser geolocation API.
 - Copyable plain-English question text in the seeker flow.
 - Hider mode canonical nearest answers from the same frozen snapshot.
