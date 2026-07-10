@@ -11,8 +11,11 @@ type MapViewProps = {
   constraints: Constraint[];
   draftConstraint?: Constraint;
   onSelectPoint: (point: LngLat) => void;
+  onDraftPointPreview?: (point: LngLat | null) => void;
   onDraftPointChange: (point: LngLat) => void;
+  onThermoFromPreview?: (point: LngLat | null) => void;
   onThermoFromChange: (point: LngLat) => void;
+  onThermoToPreview?: (point: LngLat | null) => void;
   onThermoToChange: (point: LngLat) => void;
 };
 
@@ -98,8 +101,30 @@ function attachManualDrag(
 
   const controller = new AbortController();
   let activeCleanup: (() => void) | null = null;
+  let moveFrame: number | null = null;
+  let pendingMovePoint: LngLat | null = null;
   L.DomEvent.disableClickPropagation(element);
   L.DomEvent.disableScrollPropagation(element);
+
+  const flushMove = () => {
+    if (moveFrame !== null) {
+      window.cancelAnimationFrame(moveFrame);
+      moveFrame = null;
+    }
+    if (!pendingMovePoint) return;
+    const point = pendingMovePoint;
+    pendingMovePoint = null;
+    onMove(point);
+  };
+
+  const scheduleMove = (point: LngLat) => {
+    pendingMovePoint = point;
+    if (moveFrame !== null) return;
+    moveFrame = window.requestAnimationFrame(() => {
+      moveFrame = null;
+      flushMove();
+    });
+  };
 
   element.addEventListener(
     "pointerdown",
@@ -116,7 +141,7 @@ function attachManualDrag(
       const moveTo = (pointerEvent: PointerEvent) => {
         const point = pointFromPointer(map, pointerEvent);
         marker.setLatLng([point.lat, point.lng]);
-        onMove(point);
+        scheduleMove(point);
         return point;
       };
 
@@ -138,12 +163,14 @@ function attachManualDrag(
       const handleEnd = (pointerEvent: PointerEvent) => {
         pointerEvent.preventDefault();
         const point = moveTo(pointerEvent);
+        flushMove();
         onEnd(point);
         cleanup();
       };
 
       const handleCancel = (pointerEvent: PointerEvent) => {
         pointerEvent.preventDefault();
+        flushMove();
         onEnd(toPoint(marker.getLatLng()));
         cleanup();
       };
@@ -161,6 +188,7 @@ function attachManualDrag(
 
   return () => {
     activeCleanup?.();
+    if (moveFrame !== null) window.cancelAnimationFrame(moveFrame);
     controller.abort();
   };
 }
@@ -171,8 +199,11 @@ export function MapView({
   constraints,
   draftConstraint,
   onSelectPoint,
+  onDraftPointPreview,
   onDraftPointChange,
+  onThermoFromPreview,
   onThermoFromChange,
+  onThermoToPreview,
   onThermoToChange,
 }: MapViewProps) {
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -341,21 +372,35 @@ export function MapView({
       const cleanupFrom = attachManualDrag(
         map,
         fromMarker,
-        (point) => setThermometerDrag({ handle: "from", point }),
-        (point) => setThermometerDrag({ handle: "from", point }),
+        (point) => {
+          setThermometerDrag({ handle: "from", point });
+          onThermoFromPreview?.(point);
+        },
+        (point) => {
+          setThermometerDrag({ handle: "from", point });
+          onThermoFromPreview?.(point);
+        },
         (point) => {
           onThermoFromChange(point);
           setThermometerDrag(null);
+          onThermoFromPreview?.(null);
         },
       );
       const cleanupTo = attachManualDrag(
         map,
         toMarker,
-        (point) => setThermometerDrag({ handle: "to", point }),
-        (point) => setThermometerDrag({ handle: "to", point }),
+        (point) => {
+          setThermometerDrag({ handle: "to", point });
+          onThermoToPreview?.(point);
+        },
+        (point) => {
+          setThermometerDrag({ handle: "to", point });
+          onThermoToPreview?.(point);
+        },
         (point) => {
           onThermoToChange(point);
           setThermometerDrag(null);
+          onThermoToPreview?.(null);
         },
       );
       return () => {
@@ -380,18 +425,33 @@ export function MapView({
       return attachManualDrag(
         map,
         marker,
-        setDraftDragPoint,
-        setDraftDragPoint,
+        (point) => {
+          setDraftDragPoint(point);
+          onDraftPointPreview?.(point);
+        },
+        (point) => {
+          setDraftDragPoint(point);
+          onDraftPointPreview?.(point);
+        },
         (point) => {
           onDraftPointChange(point);
           setDraftDragPoint(null);
+          onDraftPointPreview?.(null);
         },
       );
     } else {
       setDraftDragPoint(null);
       removePointMarker();
     }
-  }, [draftConstraint, onDraftPointChange, onThermoFromChange, onThermoToChange]);
+  }, [
+    draftConstraint,
+    onDraftPointChange,
+    onDraftPointPreview,
+    onThermoFromChange,
+    onThermoFromPreview,
+    onThermoToChange,
+    onThermoToPreview,
+  ]);
 
   useEffect(() => {
     const layers = layersRef.current;

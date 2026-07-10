@@ -80,16 +80,33 @@ export function App() {
   const [locationStatus, setLocationStatus] = useState("");
   const [editingConstraintId, setEditingConstraintId] = useState<string | null>(null);
   const [draftColor, setDraftColor] = useState(() => nextQuestionColor(readSavedConstraints()));
+  const [draftPointPreview, setDraftPointPreview] = useState<LngLat | null>(null);
+  const [thermoFromPreview, setThermoFromPreview] = useState<LngLat | null>(null);
+  const [thermoToPreview, setThermoToPreview] = useState<LngLat | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
   }, [constraints]);
 
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
+  const liveThermoFrom = thermoFromPreview ?? thermoFrom;
+  const liveThermoTo = thermoToPreview ?? thermoTo;
+  const liveSelectedPoint = draftPointPreview ?? (questionKind === "thermometer" ? liveThermoTo : selectedPoint);
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
-  const nearestPoi = nearestFeature(selectedPoint, categoryFeatures);
+  const nearestPoi = nearestFeature(liveSelectedPoint, categoryFeatures);
   const tentacleAnswerFeatures = useMemo(
+    () =>
+      categoryFeatures
+        .map((feature) => ({
+          feature,
+          miles: distanceMiles(liveSelectedPoint, lngLatFromFeature(feature)),
+        }))
+        .filter((item) => item.miles <= tentacleRadius)
+        .sort((a, b) => a.miles - b.miles),
+    [categoryFeatures, liveSelectedPoint, tentacleRadius],
+  );
+  const committedTentacleAnswerFeatures = useMemo(
     () =>
       categoryFeatures
         .map((feature) => ({
@@ -106,29 +123,82 @@ export function App() {
     () =>
       formatQuestionDraft({
         kind: questionKind,
-        point: selectedPoint,
+        point: liveSelectedPoint,
         category,
         radiusMiles,
         tentacleRadius,
         transitLine,
-        from: thermoFrom,
-        to: thermoTo,
+        from: liveThermoFrom,
+        to: liveThermoTo,
       }),
-    [category, questionKind, radiusMiles, selectedPoint, tentacleRadius, thermoFrom, thermoTo, transitLine],
+    [category, liveSelectedPoint, liveThermoFrom, liveThermoTo, questionKind, radiusMiles, tentacleRadius, transitLine],
   );
   const canApplyQuestion = questionKind !== "tentacles" || tentacleAnswerFeatures.length > 0;
   const editingConstraint = constraints.find((constraint) => constraint.id === editingConstraintId);
-  const draftConstraint = buildDraftConstraint({
-    id: editingConstraint?.id ?? "__draft__",
-    enabled: editingConstraint?.enabled ?? true,
-    color: draftColor,
-  });
+  const draftConstraint = useMemo(
+    () =>
+      buildDraftConstraint({
+        id: editingConstraint?.id ?? "__draft__",
+        enabled: editingConstraint?.enabled ?? true,
+        color: draftColor,
+        point: selectedPoint,
+        from: thermoFrom,
+        to: thermoTo,
+      }),
+    [
+      category,
+      draftColor,
+      editingConstraint?.enabled,
+      editingConstraint?.id,
+      measureAnswer,
+      questionKind,
+      radiusAnswer,
+      radiusMiles,
+      selectedPoint,
+      selectedPoiId,
+      tentacleRadius,
+      thermoAnswer,
+      thermoFrom,
+      thermoTo,
+      transitLine,
+      yesNoAnswer,
+    ],
+  );
+  const liveDraftConstraint = useMemo(
+    () =>
+      buildDraftConstraint({
+        id: editingConstraint?.id ?? "__draft__",
+        enabled: editingConstraint?.enabled ?? true,
+        color: draftColor,
+        point: liveSelectedPoint,
+        from: liveThermoFrom,
+        to: liveThermoTo,
+      }),
+    [
+      category,
+      draftColor,
+      editingConstraint?.enabled,
+      editingConstraint?.id,
+      liveSelectedPoint,
+      liveThermoFrom,
+      liveThermoTo,
+      measureAnswer,
+      questionKind,
+      radiusAnswer,
+      radiusMiles,
+      selectedPoiId,
+      tentacleRadius,
+      thermoAnswer,
+      transitLine,
+      yesNoAnswer,
+    ],
+  );
   const previewConstraints = useMemo(
     () =>
       editingConstraint
-        ? constraints.map((constraint) => (constraint.id === editingConstraint.id ? draftConstraint : constraint))
+        ? constraints.map((constraint) => (constraint.id === editingConstraint.id ? liveDraftConstraint : constraint))
         : constraints,
-    [constraints, draftConstraint, editingConstraint],
+    [constraints, liveDraftConstraint, editingConstraint],
   );
   const appliedMapConstraints = useMemo(
     () =>
@@ -153,7 +223,7 @@ export function App() {
       ];
     }
     if (questionKind === "matching") {
-      const nearest = nearestFeature(selectedPoint, categoryFeatures);
+      const nearest = nearestFeature(liveSelectedPoint, categoryFeatures);
       const noun = CATEGORY_LABELS[category].toLowerCase();
       return [
         { label: "Yes", detail: nearest ? `same nearest ${noun}: ${nearest.properties.name}` : `same nearest ${noun}` },
@@ -162,7 +232,7 @@ export function App() {
     }
     if (questionKind === "measuring") {
       const nearest = nearestPoi;
-      const distance = nearest ? distanceMiles(selectedPoint, lngLatFromFeature(nearest)) : undefined;
+      const distance = nearest ? distanceMiles(liveSelectedPoint, lngLatFromFeature(nearest)) : undefined;
       const noun = CATEGORY_LABELS[category].toLowerCase();
       return [
         { label: "Closer", detail: distance === undefined ? `closer to a ${noun}` : `< ${distance.toFixed(2)} mi from nearest ${noun}` },
@@ -190,46 +260,75 @@ export function App() {
       { label: "Yes", detail: `${transitLine || "line"} stops in hiding zone` },
       { label: "No", detail: `${transitLine || "line"} does not stop there` },
     ];
-  }, [category, categoryFeatures, nearestPoi, questionKind, radiusMiles, selectedPoint, tentacleAnswerFeatures, tentacleRadius, transitLine]);
+  }, [category, categoryFeatures, liveSelectedPoint, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures, tentacleRadius, transitLine]);
 
   useEffect(() => {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
     const selectedFeatureInRange =
       selectedFeature && distanceMiles(selectedPoint, lngLatFromFeature(selectedFeature)) <= tentacleRadius;
     if (questionKind === "tentacles" && selectedFeatureInRange) return;
-    const nearestInRange = tentacleAnswerFeatures[0]?.feature;
+    const nearestInRange = committedTentacleAnswerFeatures[0]?.feature;
     const nearest = nearestFeature(selectedPoint, categoryFeatures);
     if (nearestInRange) setSelectedPoiId(nearestInRange.properties.id);
     else if (nearest) setSelectedPoiId(nearest.properties.id);
-  }, [categoryFeatures, questionKind, selectedPoint, selectedPoiId, tentacleAnswerFeatures, tentacleRadius]);
+  }, [categoryFeatures, committedTentacleAnswerFeatures, questionKind, selectedPoint, selectedPoiId, tentacleRadius]);
 
-  function buildDraftConstraint({ id, enabled, color }: { id: string; enabled: boolean; color: string }): Constraint {
+  function tentaclePoiIdFor(point: LngLat): string {
+    const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
+    if (selectedFeature && distanceMiles(point, lngLatFromFeature(selectedFeature)) <= tentacleRadius) {
+      return selectedFeature.properties.id;
+    }
+    const nearestInRange = categoryFeatures
+      .map((feature) => ({
+        feature,
+        miles: distanceMiles(point, lngLatFromFeature(feature)),
+      }))
+      .filter((item) => item.miles <= tentacleRadius)
+      .sort((a, b) => a.miles - b.miles)[0]?.feature;
+    return nearestInRange?.properties.id ?? nearestFeature(point, categoryFeatures)?.properties.id ?? "";
+  }
+
+  function buildDraftConstraint({
+    id,
+    enabled,
+    color,
+    point,
+    from,
+    to,
+  }: {
+    id: string;
+    enabled: boolean;
+    color: string;
+    point: LngLat;
+    from: LngLat;
+    to: LngLat;
+  }): Constraint {
     const label = QUESTION_KINDS.find((kind) => kind.value === questionKind)?.label ?? questionKind;
     const base = { id, label, enabled, color };
     if (questionKind === "radius") {
-      return { ...base, kind: "radius", point: selectedPoint, miles: radiusMiles, answer: radiusAnswer };
+      return { ...base, kind: "radius", point, miles: radiusMiles, answer: radiusAnswer };
     }
     if (questionKind === "thermometer") {
-      return { ...base, kind: "thermometer", from: thermoFrom, to: thermoTo, answer: thermoAnswer };
+      return { ...base, kind: "thermometer", from, to, answer: thermoAnswer };
     }
     if (questionKind === "matching") {
-      return { ...base, kind: "matching", point: selectedPoint, category, answer: yesNoAnswer };
+      return { ...base, kind: "matching", point, category, answer: yesNoAnswer };
     }
     if (questionKind === "measuring") {
-      return { ...base, kind: "measuring", point: selectedPoint, category, answer: measureAnswer };
+      return { ...base, kind: "measuring", point, category, answer: measureAnswer };
     }
     if (questionKind === "tentacles") {
       return {
         ...base,
         kind: "tentacles",
-        point: selectedPoint,
+        point,
         category,
-        selectedPoiId: selectedPoiId || nearestPoi?.properties.id || "",
+        selectedPoiId: tentaclePoiIdFor(point),
         radiusMiles: tentacleRadius,
       };
     }
     if (questionKind === "district") {
-      return { ...base, kind: "district", point: selectedPoint, answer: yesNoAnswer };
+      return { ...base, kind: "district", point, answer: yesNoAnswer };
     }
     return { ...base, kind: "transit-line", line: transitLine.trim(), answer: yesNoAnswer };
   }
@@ -240,7 +339,13 @@ export function App() {
       id: existing?.id ?? makeId(),
       enabled: existing?.enabled ?? true,
       color: draftColor,
+      point: liveSelectedPoint,
+      from: liveThermoFrom,
+      to: liveThermoTo,
     });
+    setDraftPointPreview(null);
+    setThermoFromPreview(null);
+    setThermoToPreview(null);
     if (existing) {
       const nextConstraints = constraints.map((constraint) => (constraint.id === existing.id ? next : constraint));
       setConstraints(nextConstraints);
@@ -285,6 +390,9 @@ export function App() {
   }
 
   function changeQuestionKind(nextKind: QuestionKind) {
+    setDraftPointPreview(null);
+    setThermoFromPreview(null);
+    setThermoToPreview(null);
     if (nextKind === "thermometer" && questionKind !== "thermometer") {
       setThermoTo(selectedPoint);
     }
@@ -344,6 +452,9 @@ export function App() {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
+        setDraftPointPreview(null);
+        setThermoFromPreview(null);
+        setThermoToPreview(null);
         setSelectedPoint(nextPoint);
         if (questionKind === "thermometer") setThermoTo(nextPoint);
         setLocationStatus(`Accuracy ${Math.round(position.coords.accuracy)} m`);
@@ -354,19 +465,37 @@ export function App() {
   }
 
   const handleMapPointSelect = useCallback((point: LngLat) => {
+    setDraftPointPreview(null);
+    setThermoFromPreview(null);
+    setThermoToPreview(null);
     setSelectedPoint(point);
     if (questionKind === "thermometer") setThermoTo(point);
   }, [questionKind]);
 
+  const previewDraftPoint = useCallback((point: LngLat | null) => {
+    setDraftPointPreview(point);
+  }, []);
+
   const moveDraftPoint = useCallback((point: LngLat) => {
+    setDraftPointPreview(null);
     setSelectedPoint(point);
   }, []);
 
+  const previewThermoFrom = useCallback((point: LngLat | null) => {
+    setThermoFromPreview(point);
+  }, []);
+
   const moveThermoFrom = useCallback((point: LngLat) => {
+    setThermoFromPreview(null);
     setThermoFrom(point);
   }, []);
 
+  const previewThermoTo = useCallback((point: LngLat | null) => {
+    setThermoToPreview(point);
+  }, []);
+
   const moveThermoTo = useCallback((point: LngLat) => {
+    setThermoToPreview(null);
     setThermoTo(point);
     setSelectedPoint(point);
   }, []);
@@ -393,8 +522,11 @@ export function App() {
           constraints={appliedMapConstraints}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
           onSelectPoint={handleMapPointSelect}
+          onDraftPointPreview={previewDraftPoint}
           onDraftPointChange={moveDraftPoint}
+          onThermoFromPreview={previewThermoFrom}
           onThermoFromChange={moveThermoFrom}
+          onThermoToPreview={previewThermoTo}
           onThermoToChange={moveThermoTo}
         />
       </section>
@@ -421,7 +553,7 @@ export function App() {
 
         <div className="point-strip">
           <MapPin size={18} />
-          <span>Map tap: {pointLabel(selectedPoint)}</span>
+          <span>Map tap: {pointLabel(liveSelectedPoint)}</span>
           <button type="button" className="icon-text-button" onClick={useCurrentLocation}>
             <Crosshair size={17} />
             Current
@@ -499,7 +631,7 @@ export function App() {
                         Set B
                       </button>
                     </div>
-                    <p className="mini-copy">A {pointLabel(thermoFrom)} · B {pointLabel(thermoTo)}</p>
+                    <p className="mini-copy">A {pointLabel(liveThermoFrom)} · B {pointLabel(liveThermoTo)}</p>
                     <Segmented value={thermoAnswer} onChange={setThermoAnswer} options={["warmer", "colder", "same"]} />
                   </>
                 )}
