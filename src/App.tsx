@@ -80,7 +80,11 @@ export function App() {
   }, [constraints]);
 
   const candidates = useMemo(() => applyConstraints(constraints), [constraints]);
-  const possibleRegion = useMemo(() => buildSurvivalGrid(constraints), [constraints]);
+  const rasterConstraints = useMemo(
+    () => constraints.filter((constraint) => constraint.enabled && constraint.kind !== "radius"),
+    [constraints],
+  );
+  const possibleRegion = useMemo(() => buildSurvivalGrid(rasterConstraints), [rasterConstraints]);
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
@@ -195,6 +199,7 @@ export function App() {
         <MapView
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
+          constraints={constraints}
           possibleRegion={possibleRegion}
           selectedPoint={selectedPoint}
           onSelectPoint={setSelectedPoint}
