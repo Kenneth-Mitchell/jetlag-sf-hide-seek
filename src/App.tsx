@@ -429,6 +429,7 @@ export function App() {
       { label: "No", detail: `${transitLine || "line"} has no stop within 1/4 mi of the chosen station` },
     ];
   }, [category, districtAnswerLegend, liveSelectedPoint, matchingAnswerLegend, nearestPoi, questionKind, radiusMiles, tentacleAnswerFeatures.length, tentacleAnswerLegend, tentacleRadius, transitLine, transitStopCount]);
+  const showAnswerPreview = questionKind === "matching" || questionKind === "tentacles" || questionKind === "district";
   const compactVoronoiAnswers = questionKind === "matching" || questionKind === "tentacles";
   const shouldCompactAnswers = compactVoronoiAnswers && answerOptions.length > COMPACT_VORONOI_ANSWER_LIMIT;
   const visibleAnswerOptions = useMemo(() => {
@@ -1019,52 +1020,54 @@ export function App() {
                     </button>
                   </div>
 
-                  <div className="answer-preview">
-                    <div className="section-heading">
-                      <h2>Possible Answers</h2>
-                      <span>{answerOptions.length}</span>
-                    </div>
-                    {shouldCompactAnswers && (
-                      <div className="answer-list-tools">
-                        <span>
-                          {showAllAnswers
-                            ? `${answerOptions.length} shown`
-                            : `${visibleAnswerOptions.length} shown · ${hiddenAnswerCount} hidden`}
-                        </span>
-                        <button type="button" onClick={() => setShowAllAnswers((current) => !current)}>
-                          {showAllAnswers ? "Show fewer" : "Show all"}
-                        </button>
+                  {showAnswerPreview && (
+                    <div className="answer-preview">
+                      <div className="section-heading">
+                        <h2>Possible Answers</h2>
+                        <span>{answerOptions.length}</span>
                       </div>
-                    )}
-                    <div className="answer-chip-list">
-                      {visibleAnswerOptions.map((option, index) => {
-                        const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
-                        const chipClassName = `answer-chip${option.selected ? " selected-answer" : ""}`;
-                        const content = (
-                          <>
-                            {option.color && <i className="answer-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />}
-                            <strong>{option.label}</strong>
-                            {option.detail && <em>{option.detail}</em>}
-                          </>
-                        );
-                        return option.value ? (
-                          <button
-                            key={`${option.label}-${option.detail}-${index}`}
-                            type="button"
-                            className={chipClassName}
-                            style={chipStyle}
-                            onClick={() => setSelectedPoiId(option.value ?? "")}
-                          >
-                            {content}
-                          </button>
-                        ) : (
-                          <span key={`${option.label}-${option.detail}-${index}`} className={chipClassName} style={chipStyle}>
-                            {content}
+                      {shouldCompactAnswers && (
+                        <div className="answer-list-tools">
+                          <span>
+                            {showAllAnswers
+                              ? `${answerOptions.length} shown`
+                              : `${visibleAnswerOptions.length} shown · ${hiddenAnswerCount} hidden`}
                           </span>
-                        );
-                      })}
+                          <button type="button" onClick={() => setShowAllAnswers((current) => !current)}>
+                            {showAllAnswers ? "Show fewer" : "Show all"}
+                          </button>
+                        </div>
+                      )}
+                      <div className="answer-chip-list">
+                        {visibleAnswerOptions.map((option, index) => {
+                          const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
+                          const chipClassName = `answer-chip${option.selected ? " selected-answer" : ""}`;
+                          const content = (
+                            <>
+                              {option.color && <i className="answer-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />}
+                              <strong>{option.label}</strong>
+                              {option.detail && <em>{option.detail}</em>}
+                            </>
+                          );
+                          return option.value ? (
+                            <button
+                              key={`${option.label}-${option.detail}-${index}`}
+                              type="button"
+                              className={chipClassName}
+                              style={chipStyle}
+                              onClick={() => setSelectedPoiId(option.value ?? "")}
+                            >
+                              {content}
+                            </button>
+                          ) : (
+                            <span key={`${option.label}-${option.detail}-${index}`} className={chipClassName} style={chipStyle}>
+                              {content}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {editingConstraintId && (
                     <div className="edit-banner">
