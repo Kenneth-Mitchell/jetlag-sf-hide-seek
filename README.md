@@ -17,11 +17,11 @@ Implemented:
 - DataSF supervisor district and trimmed playable-area geometry:
   - `https://data.sfgov.org/resource/f2zs-jevy.geojson`
   - `https://data.sfgov.org/resource/hcgx-vtsb.geojson`
-- Seeker constraints for radius, thermometer, nearest-POI matching, measuring, tentacles, supervisorial district, station-name length, and an experimental valid-station based transit-line check.
+- Seeker constraints for radius, thermometer, nearest-POI matching, measuring, tentacles, supervisorial district, and an experimental valid-station based transit-line check.
 - Vector geometry overlays on the map after applying questions, alongside in/out candidate station zones:
   - circles for radius and measuring thresholds
   - half-plane and bisector for thermometer
-  - Voronoi cells for matching, tentacles, and station-name-length questions
+  - Voronoi cells for matching and tentacles
   - district polygons for supervisorial district questions
 - Per-question overlay colors with editable color swatches in the question stack.
 - One-tap current-location reference point using the browser geolocation API.

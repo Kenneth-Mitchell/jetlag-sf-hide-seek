@@ -1,6 +1,6 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { nearestFeature, nearestFeatureWithDistance } from "./geo";
-import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
+import { getCategoryFeatures, snapshot } from "./snapshot";
 import type { CategoryKey, Constraint, LngLat } from "./types";
 
 function pointPhrase(point: LngLat): string {
@@ -52,11 +52,6 @@ export function formatQuestionDraft({
   if (kind === "district") {
     return "Are you in the same San Francisco Supervisorial District as me?";
   }
-  if (kind === "station-name-length") {
-    const nearest = nearestFeature(point, validStations);
-    const suffix = nearest ? ` Mine is ${nearest.properties.name}, which is ${nearest.properties.name.length} characters.` : "";
-    return `Is your nearest station's name the same length as my nearest station's name?${suffix}`;
-  }
   return `Does the ${transitLine.trim() || "[line]"} line stop in your hiding zone?`;
 }
 
@@ -97,7 +92,7 @@ export function formatAppliedQuestion(constraint: Constraint): string {
       to: constraint.point,
     })} Answer: ${constraint.kind === "tentacles" ? "selected POI" : constraint.answer}.`;
   }
-  if (constraint.kind === "district" || constraint.kind === "station-name-length") {
+  if (constraint.kind === "district") {
     return `${formatQuestionDraft({
       kind: constraint.kind,
       point: constraint.point,

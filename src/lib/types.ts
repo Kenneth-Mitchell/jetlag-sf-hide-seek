@@ -110,11 +110,6 @@ export type Constraint = ConstraintBase &
         answer: "yes" | "no";
       }
     | {
-        kind: "station-name-length";
-        point: LngLat;
-        answer: "yes" | "no";
-      }
-    | {
         kind: "transit-line";
         line: string;
         answer: "yes" | "no";

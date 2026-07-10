@@ -215,25 +215,6 @@ function districtOverlay(constraint: Extract<Constraint, { kind: "district" }>):
   ];
 }
 
-function stationNameLengthOverlay(constraint: Extract<Constraint, { kind: "station-name-length" }>): ConstraintOverlay[] {
-  const nearest = nearestFeature(constraint.point, validStations);
-  if (!nearest) return [];
-  const targetLength = nearest.properties.name.length;
-  const cells = voronoiCells(validStations);
-  return cells.features
-    .filter((cell) => {
-      const station = validStations.find((candidate) => candidate.properties.id === cell.properties?.id);
-      if (!station) return false;
-      const same = station.properties.name.length === targetLength;
-      return constraint.answer === "yes" ? same : same;
-    })
-    .map((cell) => ({
-      kind: "polygon" as const,
-      feature: cell,
-      mode: constraint.answer === "yes" ? ("keep" as const) : ("exclude" as const),
-    }));
-}
-
 function transitLineOverlay(constraint: Extract<Constraint, { kind: "transit-line" }>): ConstraintOverlay[] {
   const normalized = constraint.line.trim().toLowerCase();
   if (!normalized) return [];
@@ -272,8 +253,6 @@ export function buildConstraintOverlays(constraints: Constraint[]): ConstraintOv
         return tint(tentaclesOverlay(constraint));
       case "district":
         return tint(districtOverlay(constraint));
-      case "station-name-length":
-        return tint(stationNameLengthOverlay(constraint));
       case "transit-line":
         return tint(transitLineOverlay(constraint));
     }

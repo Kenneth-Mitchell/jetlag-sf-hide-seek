@@ -101,12 +101,6 @@ export function stationSurvivesConstraint(station: CandidateStation, constraint:
       const districts = possibleDistricts(station);
       return constraint.answer === "yes" ? districts.has(seekerDistrict) : [...districts].some((d) => d !== seekerDistrict);
     }
-    case "station-name-length": {
-      const nearestStation = nearestFeature(constraint.point, validStations);
-      if (!nearestStation) return true;
-      const sameLength = station.properties.name.length === nearestStation.properties.name.length;
-      return constraint.answer === "yes" ? sameLength : !sameLength;
-    }
     case "transit-line": {
       const result = transitLineStopsInStationZone(station, constraint.line);
       return constraint.answer === "yes" ? result : !result;
@@ -160,13 +154,6 @@ export function pointSatisfiesConstraint(point: LngLat, constraint: Constraint):
       const same = seekerDistrict === hiderDistrict;
       return constraint.answer === "yes" ? same : !same;
     }
-    case "station-name-length": {
-      const seekerStation = nearestFeature(constraint.point, validStations);
-      const hiderStation = nearestFeature(point, validStations);
-      if (!seekerStation || !hiderStation) return true;
-      const same = seekerStation.properties.name.length === hiderStation.properties.name.length;
-      return constraint.answer === "yes" ? same : !same;
-    }
     case "transit-line": {
       const possibleStations = validStations.filter(
         (station) => distanceMiles(point, stationCenter(station)) <= hideRadius(),
@@ -201,8 +188,6 @@ export function describeConstraint(constraint: Constraint): string {
       return `Tentacles ${CATEGORY_LABELS[constraint.category]}`;
     case "district":
       return `Same supervisorial district: ${constraint.answer}`;
-    case "station-name-length":
-      return `Same nearest station name length: ${constraint.answer}`;
     case "transit-line":
       return `Transit line ${constraint.line}: ${constraint.answer}`;
   }

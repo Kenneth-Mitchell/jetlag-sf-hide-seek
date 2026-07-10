@@ -21,7 +21,6 @@ const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
   { value: "measuring", label: "Measuring distance" },
   { value: "tentacles", label: "Tentacles" },
   { value: "district", label: "Supervisorial district" },
-  { value: "station-name-length", label: "Station name length" },
   { value: "transit-line", label: "Transit line" },
 ];
 
@@ -129,8 +128,6 @@ export function App() {
       };
     } else if (questionKind === "district") {
       next = { ...base, kind: "district", point: selectedPoint, answer: yesNoAnswer };
-    } else if (questionKind === "station-name-length") {
-      next = { ...base, kind: "station-name-length", point: selectedPoint, answer: yesNoAnswer };
     } else {
       next = { ...base, kind: "transit-line", line: transitLine.trim(), answer: yesNoAnswer };
     }
@@ -295,7 +292,7 @@ export function App() {
                   </>
                 )}
 
-                {(questionKind === "matching" || questionKind === "district" || questionKind === "station-name-length") && (
+                {(questionKind === "matching" || questionKind === "district") && (
                   <Segmented value={yesNoAnswer} onChange={setYesNoAnswer} options={["yes", "no"]} />
                 )}
 
