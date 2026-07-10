@@ -201,6 +201,19 @@ function asNumber(value) {
   return Number.isFinite(num) ? num : undefined;
 }
 
+function distanceMilesCoords(aLng, aLat, bLng, bLat) {
+  const earthRadiusMiles = 3958.7613;
+  const toRadians = (degrees) => degrees * Math.PI / 180;
+  const dLat = toRadians(bLat - aLat);
+  const dLng = toRadians(bLng - aLng);
+  const lat1 = toRadians(aLat);
+  const lat2 = toRadians(bLat);
+  const haversine =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
 function checksum(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
@@ -285,7 +298,14 @@ function readGtfsTable(fileName) {
   return rows;
 }
 
-function buildTransitLineStopsLayer() {
+function stopIsRelevantToHidingStations(lng, lat, validStationFeatures) {
+  return validStationFeatures.some((station) => {
+    const [stationLng, stationLat] = station.geometry.coordinates;
+    return distanceMilesCoords(lng, lat, stationLng, stationLat) <= HIDE_RADIUS_MILES;
+  });
+}
+
+function buildTransitLineStopsLayer(validStationFeatures) {
   const routes = new Map();
   for (const row of readGtfsTable("routes.txt")) {
     const shortName = String(row.route_short_name ?? "").trim();
@@ -328,6 +348,7 @@ function buildTransitLineStopsLayer() {
     const lat = asNumber(row.stop_lat);
     const lng = asNumber(row.stop_lon);
     if (!stopId || lines.length === 0 || lat === undefined || lng === undefined) return [];
+    if (!stopIsRelevantToHidingStations(lng, lat, validStationFeatures)) return [];
     return [
       {
         type: "Feature",
@@ -340,6 +361,7 @@ function buildTransitLineStopsLayer() {
           sourceSheet: "SFMTA GTFS Production",
           enabled: true,
           referenceOnly: true,
+          gameRelevant: true,
           agency: "SFMTA",
           stopID: stopId,
           stopCode: String(row.stop_code ?? "").trim(),
@@ -560,14 +582,14 @@ async function main() {
   }
 
   await ensureGtfsCache();
-  const transitLineStops = buildTransitLineStopsLayer();
+  const transitLineStops = buildTransitLineStopsLayer(layers.validStations.features);
   layers.transitLineStops = transitLineStops;
   integrity.transitLineStops = {
     source: SFMTA_GTFS_FILENAME,
     features: transitLineStops.features.length,
     checksum: checksum(JSON.stringify(transitLineStops)),
   };
-  warnings.push("Transit Line uses SFMTA GTFS stop lists for SFMTA routes; non-SFMTA lines fall back to curated valid-station line metadata.");
+  warnings.push("Transit Line uses SFMTA GTFS stops within 1/4 mi of a valid hiding station; non-SFMTA lines fall back to curated valid-station line metadata.");
 
   const geometries = {};
   for (const [key, url] of Object.entries(GEOMETRY_SOURCES)) {

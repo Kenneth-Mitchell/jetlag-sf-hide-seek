@@ -3,7 +3,7 @@ import { constraintColor } from "./colors";
 import { districtAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./districts";
 import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
 import { getCategoryFeatures, snapshot } from "./snapshot";
-import { transitLineStopPointsForQuestion } from "./transit";
+import { validStationsReachedByTransitLine } from "./transit";
 import type { Constraint, LngLat, PointFeature } from "./types";
 
 export type ConstraintOverlay =
@@ -252,10 +252,10 @@ function districtOverlay(constraint: Extract<Constraint, { kind: "district" }>):
 }
 
 function transitLineOverlay(constraint: Extract<Constraint, { kind: "transit-line" }>): ConstraintOverlay[] {
-  return transitLineStopPointsForQuestion(constraint.line)
-    .map((stop) => ({
+  return validStationsReachedByTransitLine(constraint.line)
+    .map((station) => ({
       kind: "circle" as const,
-      center: lngLatFromFeature(stop),
+      center: lngLatFromFeature(station),
       radiusMiles: snapshot.hideRadiusMiles,
       mode: constraint.answer === "yes" ? ("keep" as const) : ("exclude" as const),
     }));

@@ -15,7 +15,8 @@ describe("frozen SF snapshot", () => {
     expect(snapshot.layers.hospitals.features).toHaveLength(16);
     expect(snapshot.layers.foreignConsulates.features).toHaveLength(38);
     expect(snapshot.layers.farmersMarkets.features).toHaveLength(17);
-    expect(snapshot.layers.transitLineStops.features.length).toBeGreaterThan(3000);
+    expect(snapshot.layers.transitLineStops.features.length).toBeGreaterThan(2000);
+    expect(snapshot.layers.transitLineStops.features.length).toBeLessThan(snapshot.layers.muniStops.features.length);
   });
 
   it("records the known source-of-truth caveats", () => {

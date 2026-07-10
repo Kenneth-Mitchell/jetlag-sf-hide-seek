@@ -6,7 +6,7 @@ import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from ".
 import { districtNumberFromFeature, supervisorDistrictFeatures } from "../src/lib/districts";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
-import { allTransitLineOptions, transitLineStopPointsForQuestion, transitLineStopsInStationZone } from "../src/lib/transit";
+import { allTransitLineOptions, transitLineStopPointsForQuestion, transitLineStopsInStationZone, validStationsReachedByTransitLine } from "../src/lib/transit";
 import type { CandidateStation, Constraint, LngLat } from "../src/lib/types";
 
 function station(name: string): CandidateStation {
@@ -230,7 +230,7 @@ describe("constraint engine", () => {
     expect(transitLineStopsInStationZone(station("McAllister St & Van Ness Ave"), "38")).toBe(false);
   });
 
-  it("draws Transit Line overlays from route stops, not just hiding stations", () => {
+  it("draws Transit Line overlays on affected hiding-station zones only", () => {
     const overlays = buildConstraintOverlays([{
       id: "transit-route-overlay",
       kind: "transit-line",
@@ -241,8 +241,16 @@ describe("constraint engine", () => {
       color: "#123456",
     }]);
     const circles = overlays.filter((overlay) => overlay.kind === "circle");
-    expect(circles.length).toBeGreaterThan(50);
+    const reachedStations = validStationsReachedByTransitLine("38");
+    const overlayCenters = new Set(circles.map((overlay) => `${overlay.center.lat.toFixed(6)},${overlay.center.lng.toFixed(6)}`));
+    expect(circles).toHaveLength(reachedStations.length);
+    expect(circles.length).toBeGreaterThan(10);
+    expect(circles.length).toBeLessThan(validStations.length);
     expect(circles.every((overlay) => overlay.color === "#123456")).toBe(true);
+    for (const station of reachedStations) {
+      const center = lngLatFromFeature(station);
+      expect(overlayCenters.has(`${center.lat.toFixed(6)},${center.lng.toFixed(6)}`)).toBe(true);
+    }
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

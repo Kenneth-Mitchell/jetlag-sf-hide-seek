@@ -120,3 +120,7 @@ export function transitLineStopsInStationZone(station: CandidateStation, line: s
   const stops = routeStops.length > 0 ? routeStops : validStationsForLine(normalized);
   return stops.some((stop) => distanceMiles(stationCenter, lngLatFromFeature(stop)) <= snapshot.hideRadiusMiles);
 }
+
+export function validStationsReachedByTransitLine(line: string): CandidateStation[] {
+  return validStations.filter((station) => transitLineStopsInStationZone(station, line));
+}
