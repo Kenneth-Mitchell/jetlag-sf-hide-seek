@@ -23,10 +23,10 @@ const COMPACT_VORONOI_ANSWER_LIMIT = 6;
 type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
 
 const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
-  { key: "stations", label: "Stations" },
-  { key: "currentQuestion", label: "Current" },
-  { key: "appliedQuestions", label: "Applied" },
-  { key: "answerRegions", label: "Answers" },
+  { key: "stations", label: "Station circles" },
+  { key: "currentQuestion", label: "Question preview" },
+  { key: "appliedQuestions", label: "Asked questions" },
+  { key: "answerRegions", label: "Answer regions" },
 ];
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
@@ -833,8 +833,8 @@ export function App() {
         </div>
         {locationStatus && <p className="status-line">{locationStatus}</p>}
 
-        <section className="layer-toggle-row" aria-label="Map layers">
-          <span>Map layers</span>
+        <section className="layer-toggle-row" aria-label="Map visibility">
+          <span>Show on map</span>
           {MAP_LAYER_LABELS.map(({ key, label }) => (
             <button
               key={key}

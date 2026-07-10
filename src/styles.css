@@ -221,36 +221,33 @@ h2 {
 }
 
 .layer-toggle-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto repeat(4, minmax(0, 1fr));
+  align-items: stretch;
   gap: 6px;
-  overflow-x: auto;
   padding: 8px 10px;
   border: 1px solid #d9e2df;
   border-radius: 8px;
   background: #ffffff;
-  scrollbar-width: none;
-}
-
-.layer-toggle-row::-webkit-scrollbar {
-  display: none;
 }
 
 .layer-toggle-row span {
-  flex: 0 0 auto;
+  align-self: center;
   color: #65736f;
   font-size: 0.78rem;
   font-weight: 850;
 }
 
 .layer-toggle-row button {
-  flex: 0 0 auto;
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: 999px;
+  min-height: 36px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border-color: #cbd5d6;
+  background: #ffffff;
   color: #344543;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 850;
+  line-height: 1.1;
 }
 
 .layer-toggle-row button.active {
@@ -741,8 +738,11 @@ button.answer-chip:hover {
   }
 
   .layer-toggle-row {
-    flex-wrap: wrap;
-    overflow: visible;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .layer-toggle-row span {
+    grid-column: 1 / -1;
   }
 
   .app-header {
