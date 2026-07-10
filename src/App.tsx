@@ -14,7 +14,8 @@ import type { CategoryKey, Constraint, LngLat, PointFeature } from "./lib/types"
 import { MapView } from "./components/MapView";
 
 type Mode = "seeker" | "hider" | "data";
-type QuestionKind = Constraint["kind"];
+type ActiveQuestionKind = Constraint["kind"];
+type QuestionKind = "none" | ActiveQuestionKind;
 
 const STORAGE_KEY = "jetlag-sf-constraints-v1";
 const COMPACT_VORONOI_ANSWER_LIMIT = 6;
@@ -29,6 +30,7 @@ const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
 ];
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
+  { value: "none", label: "No active question" },
   { value: "radius", label: "Radar / radius" },
   { value: "thermometer", label: "Thermometer" },
   { value: "matching", label: "Matching nearest POI" },
@@ -99,7 +101,7 @@ export function App() {
   const [mode, setMode] = useState<Mode>("seeker");
   const [selectedPoint, setSelectedPoint] = useState<LngLat>(vanNessMarket);
   const [constraints, setConstraints] = useState<Constraint[]>(readSavedConstraints);
-  const [questionKind, setQuestionKind] = useState<QuestionKind>("matching");
+  const [questionKind, setQuestionKind] = useState<QuestionKind>("none");
   const [category, setCategory] = useState<CategoryKey>("museums");
   const [radiusMiles, setRadiusMiles] = useState(1);
   const [radiusAnswer, setRadiusAnswer] = useState<"inside" | "outside">("inside");
@@ -128,6 +130,7 @@ export function App() {
   });
   const [shareStatus, setShareStatus] = useState("");
   const [importText, setImportText] = useState("");
+  const hasActiveQuestion = questionKind !== "none";
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -224,16 +227,18 @@ export function App() {
   );
   const questionDraft = useMemo(
     () =>
-      formatQuestionDraft({
-        kind: questionKind,
-        point: liveSelectedPoint,
-        category,
-        radiusMiles,
-        tentacleRadius,
-        transitLine,
-        from: liveThermoFrom,
-        to: liveThermoTo,
-      }),
+      questionKind === "none"
+        ? ""
+        : formatQuestionDraft({
+            kind: questionKind,
+            point: liveSelectedPoint,
+            category,
+            radiusMiles,
+            tentacleRadius,
+            transitLine,
+            from: liveThermoFrom,
+            to: liveThermoTo,
+          }),
     [category, liveSelectedPoint, liveThermoFrom, liveThermoTo, questionKind, radiusMiles, tentacleRadius, transitLine],
   );
   const transitStopCount = useMemo(
@@ -241,6 +246,7 @@ export function App() {
     [questionKind, transitLine],
   );
   const canApplyQuestion =
+    questionKind !== "none" &&
     (questionKind !== "tentacles" || tentacleAnswerFeatures.length > 0) &&
     (questionKind !== "transit-line" || transitStopCount > 0);
   const editingConstraint = constraints.find((constraint) => constraint.id === editingConstraintId);
@@ -305,7 +311,9 @@ export function App() {
   const previewConstraints = useMemo(
     () =>
       editingConstraint
-        ? constraints.map((constraint) => (constraint.id === editingConstraint.id ? liveDraftConstraint : constraint))
+        ? liveDraftConstraint
+          ? constraints.map((constraint) => (constraint.id === editingConstraint.id ? liveDraftConstraint : constraint))
+          : constraints
         : constraints,
     [constraints, liveDraftConstraint, editingConstraint],
   );
@@ -317,6 +325,7 @@ export function App() {
     [constraints, editingConstraint],
   );
   const answerPreviewOverlays = useMemo(() => {
+    if (!liveDraftConstraint) return [];
     if (questionKind === "matching" && liveDraftConstraint.kind === "matching") {
       return buildMatchingAnswerPreviewOverlays(
         liveDraftConstraint,
@@ -350,6 +359,7 @@ export function App() {
   }, [districtAnswerLegend, liveDraftConstraint, matchingAnswerLegend, questionKind, tentacleAnswerLegend]);
   const candidates = useMemo(() => applyConstraints(previewConstraints), [previewConstraints]);
   const answerOptions = useMemo<AnswerOption[]>(() => {
+    if (questionKind === "none") return [];
     if (questionKind === "radius") {
       return [
         { label: "Yes", detail: `inside ${radiusMiles.toFixed(2)} mi` },
@@ -490,7 +500,8 @@ export function App() {
     point: LngLat;
     from: LngLat;
     to: LngLat;
-  }): Constraint {
+  }): Constraint | undefined {
+    if (questionKind === "none") return undefined;
     const label = QUESTION_KINDS.find((kind) => kind.value === questionKind)?.label ?? questionKind;
     const base = { id, label, enabled, color };
     if (questionKind === "radius") {
@@ -531,6 +542,7 @@ export function App() {
       from: liveThermoFrom,
       to: liveThermoTo,
     });
+    if (!next) return;
     setDraftPointPreview(null);
     setThermoFromPreview(null);
     setThermoToPreview(null);
@@ -539,10 +551,12 @@ export function App() {
       setConstraints(nextConstraints);
       setEditingConstraintId(null);
       setDraftColor(nextQuestionColor(nextConstraints));
+      setQuestionKind("none");
     } else {
       const nextConstraints = [next, ...constraints];
       setConstraints(nextConstraints);
       setDraftColor(nextQuestionColor(nextConstraints));
+      setQuestionKind("none");
     }
   }
 
@@ -581,6 +595,10 @@ export function App() {
     setDraftPointPreview(null);
     setThermoFromPreview(null);
     setThermoToPreview(null);
+    if (nextKind === "none") {
+      setEditingConstraintId(null);
+      setDraftColor(nextQuestionColor(constraints));
+    }
     if (nextKind === "thermometer" && questionKind !== "thermometer") {
       setThermoTo(selectedPoint);
     }
@@ -617,6 +635,7 @@ export function App() {
   function cancelEditing() {
     setEditingConstraintId(null);
     setDraftColor(nextQuestionColor(constraints));
+    setQuestionKind("none");
   }
 
   function applyImportedMapState(value: string) {
@@ -645,6 +664,7 @@ export function App() {
   }
 
   function copyQuestion() {
+    if (!questionDraft) return;
     void navigator.clipboard?.writeText(questionDraft);
   }
 
@@ -842,21 +862,23 @@ export function App() {
                   </select>
                 </label>
 
-                <label className="draft-color-field">
-                  Color
-                  <span className="draft-color-control">
-                    <span className="color-picker" title="Question color">
-                      <span>Question color</span>
-                      <input
-                        type="color"
-                        value={draftColor}
-                        onChange={(event) => setDraftColor(event.target.value)}
-                        aria-label="Question color"
-                      />
+                {hasActiveQuestion && (
+                  <label className="draft-color-field">
+                    Color
+                    <span className="draft-color-control">
+                      <span className="color-picker" title="Question color">
+                        <span>Question color</span>
+                        <input
+                          type="color"
+                          value={draftColor}
+                          onChange={(event) => setDraftColor(event.target.value)}
+                          aria-label="Question color"
+                        />
+                      </span>
+                      <strong>{draftColor.toUpperCase()}</strong>
                     </span>
-                    <strong>{draftColor.toUpperCase()}</strong>
-                  </span>
-                </label>
+                  </label>
+                )}
 
                 {(questionKind === "matching" || questionKind === "measuring" || questionKind === "tentacles") && (
                   <label>
@@ -984,78 +1006,87 @@ export function App() {
                 )}
               </div>
 
-              <div className="question-preview">
-                <label>
-                  Copyable question
-                  <textarea readOnly value={questionDraft} rows={4} />
-                </label>
-                <button type="button" onClick={copyQuestion}>
-                  <Clipboard size={17} />
-                  Copy
-                </button>
-              </div>
-
-              <div className="answer-preview">
-                <div className="section-heading">
-                  <h2>Possible Answers</h2>
-                  <span>{answerOptions.length}</span>
-                </div>
-                {shouldCompactAnswers && (
-                  <div className="answer-list-tools">
-                    <span>
-                      {showAllAnswers
-                        ? `${answerOptions.length} shown`
-                        : `${visibleAnswerOptions.length} shown · ${hiddenAnswerCount} hidden`}
-                    </span>
-                    <button type="button" onClick={() => setShowAllAnswers((current) => !current)}>
-                      {showAllAnswers ? "Show fewer" : "Show all"}
+              {hasActiveQuestion ? (
+                <>
+                  <div className="question-preview">
+                    <label>
+                      Copyable question
+                      <textarea readOnly value={questionDraft} rows={4} />
+                    </label>
+                    <button type="button" onClick={copyQuestion}>
+                      <Clipboard size={17} />
+                      Copy
                     </button>
                   </div>
-                )}
-                <div className="answer-chip-list">
-                  {visibleAnswerOptions.map((option, index) => {
-                    const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
-                    const chipClassName = `answer-chip${option.selected ? " selected-answer" : ""}`;
-                    const content = (
-                      <>
-                        {option.color && <i className="answer-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />}
-                        <strong>{option.label}</strong>
-                        {option.detail && <em>{option.detail}</em>}
-                      </>
-                    );
-                    return option.value ? (
-                      <button
-                        key={`${option.label}-${option.detail}-${index}`}
-                        type="button"
-                        className={chipClassName}
-                        style={chipStyle}
-                        onClick={() => setSelectedPoiId(option.value ?? "")}
-                      >
-                        {content}
-                      </button>
-                    ) : (
-                      <span key={`${option.label}-${option.detail}-${index}`} className={chipClassName} style={chipStyle}>
-                        {content}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
 
-              {editingConstraintId && (
-                <div className="edit-banner">
-                  <span>Editing an existing question</span>
-                  <button type="button" onClick={cancelEditing}>
-                    <X size={17} />
-                    Cancel
+                  <div className="answer-preview">
+                    <div className="section-heading">
+                      <h2>Possible Answers</h2>
+                      <span>{answerOptions.length}</span>
+                    </div>
+                    {shouldCompactAnswers && (
+                      <div className="answer-list-tools">
+                        <span>
+                          {showAllAnswers
+                            ? `${answerOptions.length} shown`
+                            : `${visibleAnswerOptions.length} shown · ${hiddenAnswerCount} hidden`}
+                        </span>
+                        <button type="button" onClick={() => setShowAllAnswers((current) => !current)}>
+                          {showAllAnswers ? "Show fewer" : "Show all"}
+                        </button>
+                      </div>
+                    )}
+                    <div className="answer-chip-list">
+                      {visibleAnswerOptions.map((option, index) => {
+                        const chipStyle = option.color ? ({ "--answer-color": option.color } as CSSProperties) : undefined;
+                        const chipClassName = `answer-chip${option.selected ? " selected-answer" : ""}`;
+                        const content = (
+                          <>
+                            {option.color && <i className="answer-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />}
+                            <strong>{option.label}</strong>
+                            {option.detail && <em>{option.detail}</em>}
+                          </>
+                        );
+                        return option.value ? (
+                          <button
+                            key={`${option.label}-${option.detail}-${index}`}
+                            type="button"
+                            className={chipClassName}
+                            style={chipStyle}
+                            onClick={() => setSelectedPoiId(option.value ?? "")}
+                          >
+                            {content}
+                          </button>
+                        ) : (
+                          <span key={`${option.label}-${option.detail}-${index}`} className={chipClassName} style={chipStyle}>
+                            {content}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {editingConstraintId && (
+                    <div className="edit-banner">
+                      <span>Editing an existing question</span>
+                      <button type="button" onClick={cancelEditing}>
+                        <X size={17} />
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
+                  <button className="primary-action" type="button" onClick={applyQuestionForm} disabled={!canApplyQuestion}>
+                    <ListChecks size={18} />
+                    {editingConstraintId ? "Save changes" : "Apply answer"}
                   </button>
+                </>
+              ) : (
+                <div className="composer-empty">
+                  <strong>No question currently being asked.</strong>
+                  <span>Select a question type when you are ready to preview one.</span>
                 </div>
               )}
-
-              <button className="primary-action" type="button" onClick={applyQuestionForm} disabled={!canApplyQuestion}>
-                <ListChecks size={18} />
-                {editingConstraintId ? "Save changes" : "Apply answer"}
-              </button>
             </section>
 
             <section className="tool-panel">

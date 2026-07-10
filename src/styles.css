@@ -450,6 +450,24 @@ textarea {
   font-weight: 700;
 }
 
+.composer-empty {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px dashed #cbd5d6;
+  border-radius: 8px;
+  background: #fbfdfb;
+}
+
+.composer-empty strong {
+  color: #101820;
+}
+
+.composer-empty span {
+  color: #65736f;
+  font-size: 0.86rem;
+}
+
 .question-preview {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
