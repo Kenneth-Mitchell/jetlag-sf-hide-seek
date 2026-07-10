@@ -17,6 +17,7 @@ export type ConstraintOverlay =
       feature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
       mode: "keep" | "exclude" | "reference";
       color?: string;
+      stroke?: boolean;
     }
   | {
       kind: "line";
@@ -118,7 +119,7 @@ function thermometerOverlay(constraint: Extract<Constraint, { kind: "thermometer
   if (constraint.answer === "same") return [bisectorLine(constraint.from, constraint.to)];
   const polygon = clipRectangleToHalfPlane(normal, offset, constraint.answer === "warmer");
   return [
-    ...(polygon ? [{ kind: "polygon" as const, feature: polygon, mode: "keep" as const }] : []),
+    ...(polygon ? [{ kind: "polygon" as const, feature: polygon, mode: "keep" as const, stroke: false }] : []),
     bisectorLine(constraint.from, constraint.to),
   ];
 }

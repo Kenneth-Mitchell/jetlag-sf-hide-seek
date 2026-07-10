@@ -234,7 +234,10 @@ export function MapView({
       } else if (overlay.kind === "polygon") {
         L.geoJSON(overlay.feature, {
           interactive: false,
-          style: overlayStyle(overlay.mode, overlay.color),
+          style: {
+            ...overlayStyle(overlay.mode, overlay.color),
+            stroke: overlay.stroke ?? true,
+          },
         }).addTo(group);
       } else {
         L.polyline(
@@ -269,6 +272,7 @@ export function MapView({
           interactive: false,
           style: {
             ...overlayStyle(mode, overlay.color),
+            stroke: overlay.stroke ?? true,
             weight: 3,
           },
         }).addTo(group);
