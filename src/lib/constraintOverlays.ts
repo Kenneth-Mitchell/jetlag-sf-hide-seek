@@ -2,7 +2,7 @@ import * as turf from "@turf/turf";
 import { constraintColor } from "./colors";
 import { districtAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./districts";
 import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
-import { distanceToLinearCategoryMiles, isLinearCategory, linearCategoryLines } from "./linearCategories";
+import { distanceToLinearCategoryMiles, isLinearCategory, linearCategoryBufferLine, linearCategoryDisplayLines } from "./linearCategories";
 import { getCategoryFeatures, snapshot } from "./snapshot";
 import { validStationsReachedByTransitLine } from "./transit";
 import type { Constraint, LngLat, PointFeature } from "./types";
@@ -201,18 +201,36 @@ function matchingOverlay(constraint: Extract<Constraint, { kind: "matching" }>):
   ];
 }
 
+const linearBufferCache = new Map<string, GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>>();
+
+function linearBufferFeature(
+  category: Extract<Constraint, { kind: "measuring" }>["category"],
+  referenceMiles: number,
+): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
+  if (!isLinearCategory(category) || referenceMiles <= 0.005) return undefined;
+  const bufferLine = linearCategoryBufferLine(category);
+  if (!bufferLine) return undefined;
+  const roundedMiles = Math.round(referenceMiles * 100) / 100;
+  const cacheKey = `${category}:${roundedMiles.toFixed(2)}`;
+  const cached = linearBufferCache.get(cacheKey);
+  if (cached) return cached;
+  const buffer = turf.buffer(bufferLine, roundedMiles, { units: "miles", steps: 8 });
+  if (!buffer || (buffer.geometry.type !== "Polygon" && buffer.geometry.type !== "MultiPolygon")) return undefined;
+  const feature = buffer as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
+  linearBufferCache.set(cacheKey, feature);
+  return feature;
+}
+
 function measuringOverlay(constraint: Extract<Constraint, { kind: "measuring" }>): ConstraintOverlay[] {
   if (isLinearCategory(constraint.category)) {
     const referenceMiles = distanceToLinearCategoryMiles(constraint.point, constraint.category);
     if (referenceMiles === undefined) return [];
-    const lines = linearCategoryLines(constraint.category);
+    const lines = linearCategoryDisplayLines(constraint.category);
     const bandMode: ConstraintOverlay["mode"] = constraint.answer === "closer" ? "keep" : "exclude";
-    const bandOverlays = referenceMiles <= 0.005
-      ? []
-      : lines.flatMap((line) => {
-          const buffer = turf.buffer(line, referenceMiles, { units: "miles" });
-          if (!buffer || (buffer.geometry.type !== "Polygon" && buffer.geometry.type !== "MultiPolygon")) return [];
-          return [
+    const buffer = linearBufferFeature(constraint.category, referenceMiles);
+    const bandOverlays =
+      buffer && (buffer.geometry.type === "Polygon" || buffer.geometry.type === "MultiPolygon")
+        ? [
             {
               kind: "polygon" as const,
               feature: buffer as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>,
@@ -220,8 +238,8 @@ function measuringOverlay(constraint: Extract<Constraint, { kind: "measuring" }>
               stroke: false,
               fillOpacity: constraint.answer === "closer" ? 0.16 : 0.1,
             },
-          ];
-        });
+          ]
+        : [];
     const lineOverlays = lines.map((line) => ({
       kind: "line" as const,
       coordinates: line.geometry.coordinates.map(([lng, lat]) => ({ lng, lat })),
