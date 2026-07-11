@@ -526,30 +526,33 @@ export function MapView({
       }
       const fromMarker = thermoFromMarkerRef.current;
       const toMarker = thermoToMarkerRef.current;
+      const updateThermometerRuler = (from: LngLat, to: LngLat) => {
+        const rulerFromLatLng: L.LatLngExpression = [from.lat, from.lng];
+        const rulerToLatLng: L.LatLngExpression = [to.lat, to.lng];
+        const rulerMiddle = midpoint(from, to);
+        if (!thermoLineRef.current) {
+          thermoLineRef.current = L.polyline([rulerFromLatLng, rulerToLatLng], {
+            color,
+            weight: 3,
+            opacity: 0.9,
+            interactive: false,
+          }).addTo(map);
+        }
+        if (!thermoDistanceMarkerRef.current) {
+          thermoDistanceMarkerRef.current = L.marker([rulerMiddle.lat, rulerMiddle.lng], {
+            icon: thermometerDistanceIcon(thermometerDistanceLabel(from, to), color),
+            interactive: false,
+            zIndexOffset: 1190,
+          }).addTo(map);
+        }
+        thermoLineRef.current.setStyle({ color });
+        thermoLineRef.current.setLatLngs([rulerFromLatLng, rulerToLatLng]);
+        thermoDistanceMarkerRef.current.setIcon(thermometerDistanceIcon(thermometerDistanceLabel(from, to), color));
+        thermoDistanceMarkerRef.current.setLatLng([rulerMiddle.lat, rulerMiddle.lng]);
+      };
       const fromLatLng: L.LatLngExpression = [draftConstraint.from.lat, draftConstraint.from.lng];
       const toLatLng: L.LatLngExpression = [draftConstraint.to.lat, draftConstraint.to.lng];
-      const middle = midpoint(draftConstraint.from, draftConstraint.to);
-      if (!thermoLineRef.current) {
-        thermoLineRef.current = L.polyline([fromLatLng, toLatLng], {
-          color,
-          weight: 3,
-          opacity: 0.9,
-          interactive: false,
-        }).addTo(map);
-      }
-      if (!thermoDistanceMarkerRef.current) {
-        thermoDistanceMarkerRef.current = L.marker([middle.lat, middle.lng], {
-          icon: thermometerDistanceIcon(thermometerDistanceLabel(draftConstraint.from, draftConstraint.to), color),
-          interactive: false,
-          zIndexOffset: 1190,
-        }).addTo(map);
-      }
-      thermoLineRef.current.setStyle({ color });
-      thermoLineRef.current.setLatLngs([fromLatLng, toLatLng]);
-      thermoDistanceMarkerRef.current.setIcon(
-        thermometerDistanceIcon(thermometerDistanceLabel(draftConstraint.from, draftConstraint.to), color),
-      );
-      thermoDistanceMarkerRef.current.setLatLng([middle.lat, middle.lng]);
+      updateThermometerRuler(draftConstraint.from, draftConstraint.to);
       fromMarker.setIcon(handleIcon("A", color));
       toMarker.setIcon(handleIcon("B", color));
       fromMarker.setLatLng(fromLatLng);
@@ -559,13 +562,16 @@ export function MapView({
         fromMarker,
         (point) => {
           setThermometerDrag({ handle: "from", point });
+          updateThermometerRuler(point, draftConstraint.to);
           onThermoFromPreview?.(point);
         },
         (point) => {
           setThermometerDrag({ handle: "from", point });
+          updateThermometerRuler(point, draftConstraint.to);
           onThermoFromPreview?.(point);
         },
         (point) => {
+          updateThermometerRuler(point, draftConstraint.to);
           onThermoFromChange(point);
           setThermometerDrag(null);
           onThermoFromPreview?.(null);
@@ -576,13 +582,16 @@ export function MapView({
         toMarker,
         (point) => {
           setThermometerDrag({ handle: "to", point });
+          updateThermometerRuler(draftConstraint.from, point);
           onThermoToPreview?.(point);
         },
         (point) => {
           setThermometerDrag({ handle: "to", point });
+          updateThermometerRuler(draftConstraint.from, point);
           onThermoToPreview?.(point);
         },
         (point) => {
+          updateThermometerRuler(draftConstraint.from, point);
           onThermoToChange(point);
           setThermometerDrag(null);
           onThermoToPreview?.(null);
