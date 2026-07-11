@@ -301,21 +301,18 @@ h2 {
   font-size: 1rem;
 }
 
-.mode-tabs,
 .segmented,
 .button-row {
   display: flex;
   gap: 6px;
 }
 
-.mode-tabs button,
 .segmented button {
   border-radius: 8px;
   padding: 0 12px;
   text-transform: capitalize;
 }
 
-.mode-tabs .active,
 .segmented .active,
 .primary-action {
   border-color: #0f766e;
@@ -336,6 +333,54 @@ h2 {
 
 .point-strip span {
   flex: 1;
+}
+
+.settings-open-button {
+  flex: 0 0 auto;
+}
+
+.settings-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-panel {
+  gap: 10px;
+}
+
+.settings-mode-list {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-mode-list button {
+  display: grid;
+  gap: 2px;
+  min-height: 54px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.settings-mode-list button strong {
+  color: #101820;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.settings-mode-list button span {
+  color: #65736f;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.settings-mode-list button.active {
+  border-color: #0f766e;
+  background: #e4f4ef;
+}
+
+.settings-mode-list button.active strong {
+  color: #0f766e;
 }
 
 .icon-text-button {
@@ -956,68 +1001,60 @@ button.answer-chip:hover {
   }
 
   .question-composer-panel,
-  .hider-panel,
-  .data-panel {
-    order: 1;
-  }
-
-  .question-stack-panel {
+  .settings-stack {
     order: 2;
   }
 
-  .app-header {
+  .question-stack-panel {
     order: 3;
-    display: grid;
+  }
+
+  .app-header {
+    order: 1;
+    align-items: center;
     gap: 8px;
-    padding: 8px;
-    border: 1px solid #d9e2df;
-    border-radius: 8px;
-    background: #ffffff;
+    padding: 0 4px;
   }
 
   .app-header > div:first-child {
-    display: flex;
+    display: grid;
     align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .settings-open-button {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 8px;
   }
 
   h1 {
-    font-size: 1.02rem;
+    font-size: 0.98rem;
     line-height: 1.1;
   }
 
   .eyebrow {
-    margin: 0;
-    font-size: 0.66rem;
-  }
-
-  .mode-tabs {
-    width: 100%;
-  }
-
-  .mode-tabs button {
-    flex: 1;
-    min-height: 38px;
-    padding: 0 10px;
-    font-size: 0.92rem;
-    font-weight: 750;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
 
   .point-strip {
-    order: 4;
     gap: 7px;
     padding: 7px 8px;
     font-size: 0.84rem;
   }
 
   .status-line {
-    order: 5;
+    order: initial;
   }
 
   .station-list-panel {
-    order: 6;
+    order: 4;
   }
 
   .point-strip svg {
