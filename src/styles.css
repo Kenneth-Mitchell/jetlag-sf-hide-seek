@@ -75,11 +75,13 @@ button:disabled {
   gap: 6px;
 }
 
-.map-focus-button {
+.map-focus-button,
+.map-current-location-button {
   display: none;
 }
 
-.map-layer-button {
+.map-layer-button,
+.map-current-location-button {
   display: grid;
   place-items: center;
   width: 36px;
@@ -94,7 +96,8 @@ button:disabled {
 }
 
 .map-layer-button.active,
-.map-layer-button:hover {
+.map-layer-button:hover,
+.map-current-location-button:hover {
   border-color: #0f766e;
 }
 
@@ -878,8 +881,13 @@ button.answer-chip:hover {
     color: #101820;
   }
 
+  .map-current-location-button {
+    display: grid;
+  }
+
   .map-focus-button[aria-pressed="true"],
-  .map-focus-button:hover {
+  .map-focus-button:hover,
+  .map-current-location-button:hover {
     border-color: #0f766e;
     color: #0f766e;
   }

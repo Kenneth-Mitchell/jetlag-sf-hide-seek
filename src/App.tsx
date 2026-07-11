@@ -911,6 +911,18 @@ export function App() {
           >
             <Layers size={18} />
           </button>
+          <button
+            type="button"
+            className="map-current-location-button"
+            onClick={() => {
+              setShowLayerMenu(false);
+              useCurrentLocation();
+            }}
+            aria-label="Set current location"
+            title="Set current location"
+          >
+            <Crosshair size={18} />
+          </button>
           {showLayerMenu && (
             <div id="map-layer-menu" className="map-layer-menu" role="dialog" aria-label="Map layers">
               <strong>Map layers</strong>
@@ -968,10 +980,6 @@ export function App() {
         <div className="point-strip">
           <MapPin size={18} />
           <span>Map tap: {pointLabel(liveSelectedPoint)}</span>
-          <button type="button" className="icon-text-button" onClick={useCurrentLocation}>
-            <Crosshair size={17} />
-            Current
-          </button>
         </div>
         {locationStatus && <p className="status-line">{locationStatus}</p>}
 
