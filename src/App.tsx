@@ -27,6 +27,7 @@ import { buildDraftConstraint } from "./lib/draftConstraint";
 import { nearestSeaLevelWithDistance } from "./lib/elevation";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./lib/linearCategories";
+import { decodeMapState, encodeMapState } from "./lib/mapState";
 import { answerPastedQuestion } from "./lib/pastedQuestion";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { allPointCategories, getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
@@ -108,24 +109,6 @@ type AnswerOption = {
   value?: string;
   distanceMiles?: number;
 };
-
-type SavedMapState = {
-  version?: number;
-  constraints?: Constraint[];
-  selectedPoint?: LngLat;
-};
-
-function encodeMapState(constraints: Constraint[], selectedPoint: LngLat): string {
-  return btoa(JSON.stringify({ version: 2, constraints, selectedPoint }));
-}
-
-function decodeMapState(value: string): SavedMapState {
-  const trimmed = value.trim();
-  const hash = trimmed.includes("#") ? trimmed.slice(trimmed.indexOf("#") + 1) : trimmed;
-  const encoded = new URLSearchParams(hash.replace(/^#/, "")).get("state") ?? trimmed;
-  const parsed = JSON.parse(atob(encoded)) as Constraint[] | SavedMapState;
-  return Array.isArray(parsed) ? { version: 1, constraints: parsed } : parsed;
-}
 
 function readSavedStationColor(): string {
   try {

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildDraftConstraint } from "../src/lib/draftConstraint";
+import { decodeMapState, encodeMapState } from "../src/lib/mapState";
 import { answerPastedQuestion } from "../src/lib/pastedQuestion";
 import { formatQuestionDraft } from "../src/lib/questionText";
 import { vanNessMarket } from "../src/lib/snapshot";
+import type { Constraint } from "../src/lib/types";
 
 describe("question helper modules", () => {
   it("builds draft constraints outside the React component", () => {
@@ -51,6 +53,38 @@ describe("question helper modules", () => {
     expect(answer).toMatchObject({
       title: "Radar / radius",
       answer: "Yes",
+    });
+  });
+
+  it("round-trips URL-safe map share state", () => {
+    const constraints: Constraint[] = [{
+      id: "test",
+      kind: "radius",
+      label: "Radar / radius",
+      enabled: true,
+      color: "#7c3aed",
+      point: vanNessMarket,
+      miles: 0.5,
+      answer: "inside",
+    }];
+
+    const encoded = encodeMapState(constraints, vanNessMarket);
+    const decoded = decodeMapState(`https://example.test/map#state=${encoded}`);
+
+    expect(encoded).not.toMatch(/[+/=]/);
+    expect(decoded.constraints).toMatchObject(constraints);
+    expect(decoded.selectedPoint).toEqual(vanNessMarket);
+  });
+
+  it("imports old raw base64 links even when plus signs were read as spaces", () => {
+    const oldBase64WithPlus =
+      "eyJ2ZXJzaW9uIjoyLCJjb25zdHJhaW50cyI6W3siaWQiOiI0aSVcIl0zZWcyaj8hLmYoOXg+V0kiLCJraW5kIjoicmFkaXVzIiwibGFiZWwiOiJfMVUwOCpSN1JRNypYZSRcXDhWTj0iLCJlbmFibGVkIjp0cnVlLCJjb2xvciI6IiM3YzNhZWQiLCJwb2ludCI6eyJsYXQiOjM3Ljc3LCJsbmciOi0xMjIuNDJ9LCJtaWxlcyI6MSwiYW5zd2VyIjoiaW5zaWRlIn1dLCJzZWxlY3RlZFBvaW50Ijp7ImxhdCI6MzcuNzcsImxuZyI6LTEyMi40Mn19";
+    const decoded = decodeMapState(`#state=${oldBase64WithPlus}`);
+
+    expect(decoded.constraints?.[0]).toMatchObject({
+      kind: "radius",
+      answer: "inside",
+      point: { lat: 37.77, lng: -122.42 },
     });
   });
 });
