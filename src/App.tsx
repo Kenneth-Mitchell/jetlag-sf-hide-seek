@@ -30,7 +30,7 @@ import { distanceToLinearCategoryMiles, isLinearCategory } from "./lib/linearCat
 import { answerPastedQuestion } from "./lib/pastedQuestion";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { allPointCategories, getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
-import { allTransitLineOptions, transitLineStopPointsForQuestion } from "./lib/transit";
+import { allTransitLineOptions, validStationsReachedByTransitLine } from "./lib/transit";
 import type { CategoryKey, Constraint, LngLat, PointFeature } from "./lib/types";
 import { MapView } from "./components/MapView";
 
@@ -261,7 +261,7 @@ export function App() {
     return [...matches].sort((a, b) => Number(b === transitLine) - Number(a === transitLine) || a.localeCompare(b, undefined, { numeric: true }));
   }, [lines, transitLine, transitLineSearch]);
   const transitLineCounts = useMemo(
-    () => new Map(lines.map((line) => [line, transitLineStopPointsForQuestion(line).length])),
+    () => new Map(lines.map((line) => [line, validStationsReachedByTransitLine(line).length])),
     [lines],
   );
   const liveSelectedPoiId = questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId;
@@ -322,7 +322,7 @@ export function App() {
     [category, liveSelectedPoint, liveThermoFrom, liveThermoTo, questionKind, radiusMiles, tentacleRadius, transitLine],
   );
   const transitStopCount = useMemo(
-    () => (questionKind === "transit-line" ? transitLineStopPointsForQuestion(transitLine).length : 0),
+    () => (questionKind === "transit-line" ? validStationsReachedByTransitLine(transitLine).length : 0),
     [questionKind, transitLine],
   );
   const canApplyQuestion =
@@ -1150,7 +1150,7 @@ export function App() {
                       <div className="selected-transit-line">
                         <span>Selected</span>
                         <strong>{transitLine}</strong>
-                        <em>{transitStopCount > 0 ? `${transitStopCount} route points` : "no route points"}</em>
+                        <em>{transitStopCount > 0 ? `${transitStopCount} stations` : "no stations"}</em>
                       </div>
                       <div className="transit-line-list" role="listbox" aria-label="Transit line">
                         {filteredTransitLines.map((line) => (
@@ -1162,7 +1162,7 @@ export function App() {
                             aria-selected={line === transitLine}
                           >
                             <strong>{line}</strong>
-                            <span>{transitLineCounts.get(line) ?? 0} route points</span>
+                            <span>{transitLineCounts.get(line) ?? 0} stations</span>
                           </button>
                         ))}
                         {filteredTransitLines.length === 0 && <span>No routes found</span>}
