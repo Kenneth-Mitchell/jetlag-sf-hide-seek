@@ -1,5 +1,5 @@
-const CACHE = "jetlag-sf-v1";
-const CORE = ["/", "/index.html", "/manifest.webmanifest"];
+const CACHE = "jetlag-sf-v2";
+const CORE = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)));
@@ -24,7 +24,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match("/index.html"));
+        .catch(() => caches.match("./index.html"));
     }),
   );
 });
