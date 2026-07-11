@@ -850,7 +850,7 @@ button.answer-chip:hover {
   .map-pane {
     position: sticky;
     top: 0;
-    height: 64svh;
+    height: var(--mobile-map-height, 64svh);
     transition: height 180ms ease;
   }
 
@@ -861,6 +861,10 @@ button.answer-chip:hover {
 
   .app-shell.map-focus .map-pane {
     height: calc(100svh - 34px);
+  }
+
+  .app-shell.sheet-dragging .map-pane {
+    transition: none;
   }
 
   button {
@@ -907,15 +911,39 @@ button.answer-chip:hover {
     padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
 
-  .control-pane::before {
-    content: "";
+  .sheet-resize-handle {
     order: 0;
+    display: grid;
+    place-items: center;
     align-self: center;
+    width: 86px;
+    min-width: 86px;
+    min-height: 26px;
+    margin: -4px 0 -2px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    touch-action: none;
+    cursor: ns-resize;
+  }
+
+  .sheet-resize-handle span {
+    display: block;
     width: 42px;
     height: 4px;
-    margin: 0 0 2px;
     border-radius: 999px;
-    background: #cbd5d6;
+    background: #aab7b5;
+    transition:
+      width 120ms ease,
+      background 120ms ease;
+  }
+
+  .sheet-resize-handle:hover span,
+  .sheet-resize-handle:focus-visible span,
+  .app-shell.sheet-dragging .sheet-resize-handle span {
+    width: 54px;
+    background: #0f766e;
   }
 
   .tool-panel {

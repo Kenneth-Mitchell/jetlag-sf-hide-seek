@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
@@ -37,6 +37,9 @@ const STORAGE_KEY = "jetlag-sf-constraints-v1";
 const STATION_COLOR_KEY = "jetlag-sf-station-circle-color-v1";
 const COMPACT_VORONOI_ANSWER_LIMIT = 6;
 const DEFAULT_STATION_COLOR = "#0f766e";
+const DEFAULT_MOBILE_MAP_HEIGHT = 64;
+const MIN_MOBILE_MAP_HEIGHT = 34;
+const MAX_MOBILE_MAP_HEIGHT = 88;
 
 type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
 
@@ -124,6 +127,10 @@ function readSavedStationColor(): string {
   }
 }
 
+function clampMobileMapHeight(value: number) {
+  return Math.min(MAX_MOBILE_MAP_HEIGHT, Math.max(MIN_MOBILE_MAP_HEIGHT, value));
+}
+
 export function App() {
   const [mode, setMode] = useState<Mode>("seeker");
   const [selectedPoint, setSelectedPoint] = useState<LngLat>(vanNessMarket);
@@ -158,12 +165,15 @@ export function App() {
   });
   const [stationColor, setStationColor] = useState(readSavedStationColor);
   const [mapFocus, setMapFocus] = useState(false);
+  const [mobileMapHeight, setMobileMapHeight] = useState(DEFAULT_MOBILE_MAP_HEIGHT);
+  const [isSheetDragging, setIsSheetDragging] = useState(false);
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [importText, setImportText] = useState("");
   const [showImportPanel, setShowImportPanel] = useState(false);
   const layerControlRef = useRef<HTMLDivElement | null>(null);
   const hasActiveQuestion = questionKind !== "none";
+  const appShellStyle = { "--mobile-map-height": `${mobileMapHeight}svh` } as CSSProperties;
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -850,6 +860,43 @@ export function App() {
     setSelectedPoint(point);
   }, []);
 
+  const setSheetPositionFromPointer = useCallback((clientY: number) => {
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    if (!viewportHeight) return;
+    const nextMapHeight = ((clientY + 18) / viewportHeight) * 100;
+    setMobileMapHeight(clampMobileMapHeight(nextMapHeight));
+  }, []);
+
+  const handleSheetDragStart = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    setMapFocus(false);
+    setShowLayerMenu(false);
+    setIsSheetDragging(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setSheetPositionFromPointer(event.clientY);
+
+    const handleMove = (pointerEvent: PointerEvent) => {
+      pointerEvent.preventDefault();
+      setSheetPositionFromPointer(pointerEvent.clientY);
+    };
+    const handleEnd = () => {
+      setIsSheetDragging(false);
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleEnd);
+      window.removeEventListener("pointercancel", handleEnd);
+    };
+
+    window.addEventListener("pointermove", handleMove, { passive: false });
+    window.addEventListener("pointerup", handleEnd);
+    window.addEventListener("pointercancel", handleEnd);
+  }, [setSheetPositionFromPointer]);
+
+  const resetSheetPosition = useCallback(() => {
+    setMapFocus(false);
+    setMobileMapHeight(DEFAULT_MOBILE_MAP_HEIGHT);
+  }, []);
+
   useEffect(() => {
     const state = new URLSearchParams(location.hash.replace(/^#/, "")).get("state");
     if (!state) return;
@@ -858,7 +905,7 @@ export function App() {
   }, []);
 
   return (
-    <main className={`app-shell${mapFocus ? " map-focus" : ""}`}>
+    <main className={`app-shell${mapFocus ? " map-focus" : ""}${isSheetDragging ? " sheet-dragging" : ""}`} style={appShellStyle}>
       <section className="map-pane" aria-label="Map">
         <MapView
           candidates={candidates}
@@ -947,6 +994,16 @@ export function App() {
       </section>
 
       <section className={`control-pane mode-${mode}`}>
+        <button
+          type="button"
+          className="sheet-resize-handle"
+          onPointerDown={handleSheetDragStart}
+          onDoubleClick={resetSheetPosition}
+          aria-label="Resize question panel"
+          title="Drag to resize question panel"
+        >
+          <span />
+        </button>
         <header className="app-header">
           <div>
             <p className="eyebrow">San Francisco Hide & Seek</p>
