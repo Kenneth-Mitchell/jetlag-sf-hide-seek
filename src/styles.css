@@ -628,22 +628,11 @@ textarea {
   font-weight: 700;
 }
 
-.composer-empty {
-  display: grid;
-  gap: 4px;
-  padding: 12px;
-  border: 1px dashed #cbd5d6;
-  border-radius: 8px;
-  background: #fbfdfb;
-}
-
-.composer-empty strong {
-  color: #101820;
-}
-
-.composer-empty span {
+.composer-idle {
+  margin: -2px 0 0;
   color: #65736f;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .hider-question-tool {
@@ -1202,18 +1191,6 @@ button.answer-chip:hover {
     width: 38px;
     min-width: 38px;
     min-height: 38px;
-  }
-
-  .composer-empty {
-    padding: 10px;
-  }
-
-  .composer-empty strong {
-    font-size: 0.95rem;
-  }
-
-  .composer-empty span {
-    font-size: 0.8rem;
   }
 
   .candidate-list,

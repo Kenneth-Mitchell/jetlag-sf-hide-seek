@@ -1349,6 +1349,7 @@ export function App() {
                   </>
                 )}
               </div>
+              {!hasActiveQuestion && <p className="composer-idle">Choose a question type to preview it on the map.</p>}
 
               {hasActiveQuestion ? (
                 <>
@@ -1427,12 +1428,7 @@ export function App() {
                     {editingConstraintId ? "Save changes" : "Apply answer"}
                   </button>
                 </>
-              ) : (
-                <div className="composer-empty">
-                  <strong>No question currently being asked.</strong>
-                  <span>Select a question type when you are ready to preview one.</span>
-                </div>
-              )}
+              ) : null}
             </section>
 
             <section className="tool-panel question-stack-panel">
