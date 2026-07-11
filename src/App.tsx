@@ -1203,20 +1203,19 @@ export function App() {
           <div className="panel-stack">
             <section className="tool-panel question-composer-panel">
               <div className="field-grid">
-                <label>
-                  Question
-                  <select value={questionKind} onChange={(event) => changeQuestionKind(event.target.value as QuestionKind)}>
-                    {QUESTION_KINDS.map((kind) => (
-                      <option key={kind.value} value={kind.value}>
-                        {kind.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="question-control-row">
+                  <label className="question-kind-field">
+                    Question
+                    <select value={questionKind} onChange={(event) => changeQuestionKind(event.target.value as QuestionKind)}>
+                      {QUESTION_KINDS.map((kind) => (
+                        <option key={kind.value} value={kind.value}>
+                          {kind.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                {hasActiveQuestion && (
-                  <label className="draft-color-field">
-                    Color
+                  {hasActiveQuestion && (
                     <span className="draft-color-control">
                       <span className="color-picker" title="Question color">
                         <span>Question color</span>
@@ -1228,8 +1227,8 @@ export function App() {
                         />
                       </span>
                     </span>
-                  </label>
-                )}
+                  )}
+                </div>
 
                 {(questionKind === "matching" || questionKind === "measuring" || questionKind === "tentacles") && (
                   <label>

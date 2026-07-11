@@ -449,22 +449,31 @@ h2 {
   gap: 10px;
 }
 
-.draft-color-field {
+.question-control-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.question-kind-field {
   min-width: 0;
 }
 
 .draft-color-control {
-  display: flex;
-  align-items: center;
-  min-height: 32px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 42px;
 }
 
-.draft-color-field .color-picker {
+.draft-color-control .color-picker {
   width: 24px;
   height: 24px;
 }
 
-.draft-color-field .color-picker input[type="color"] {
+.draft-color-control .color-picker input[type="color"] {
   width: 38px;
   min-height: 38px;
   height: 38px;
@@ -1146,6 +1155,11 @@ button.answer-chip:hover {
 
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .question-control-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
   }
 
   .question-preview {
