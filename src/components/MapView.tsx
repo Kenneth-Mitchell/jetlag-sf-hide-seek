@@ -115,7 +115,7 @@ function midpoint(a: LngLat, b: LngLat): LngLat {
 
 function thermometerDistanceLabel(a: LngLat, b: LngLat): string {
   const miles = distanceMiles(a, b);
-  return miles < 1 ? `${Math.round(miles * 5280)} ft` : `${miles.toFixed(2)} mi`;
+  return `${miles.toFixed(2)} mi`;
 }
 
 function toPoint(latlng: L.LatLng): LngLat {
