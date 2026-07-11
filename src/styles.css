@@ -953,8 +953,27 @@ button.answer-chip:hover {
     color: #101820;
   }
 
+  .map-layer-control {
+    top: 8px;
+    right: 8px;
+    gap: 5px;
+  }
+
+  .map-layer-button,
+  .map-current-location-button,
+  .map-focus-button {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 6px;
+  }
+
   .map-current-location-button {
     display: grid;
+  }
+
+  .leaflet-control-zoom {
+    display: none;
   }
 
   .map-focus-button[aria-pressed="true"],
