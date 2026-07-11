@@ -1,7 +1,7 @@
 import L from "leaflet";
 import { useEffect, useRef, useState } from "react";
 import { buildConstraintOverlays, buildVoronoiPreviewOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
-import { milesToMeters } from "../lib/geo";
+import { distanceMiles, milesToMeters } from "../lib/geo";
 import { snapshot, vanNessMarket } from "../lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../lib/types";
 
@@ -95,6 +95,27 @@ function userLocationIcon(): L.DivIcon {
     iconSize: [28, 28],
     iconAnchor: [14, 14],
   });
+}
+
+function thermometerDistanceIcon(label: string, color: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div class="thermometer-distance-label" style="--thermometer-color: ${color}">${label}</div>`,
+    iconSize: [74, 24],
+    iconAnchor: [37, 12],
+  });
+}
+
+function midpoint(a: LngLat, b: LngLat): LngLat {
+  return {
+    lat: (a.lat + b.lat) / 2,
+    lng: (a.lng + b.lng) / 2,
+  };
+}
+
+function thermometerDistanceLabel(a: LngLat, b: LngLat): string {
+  const miles = distanceMiles(a, b);
+  return miles < 1 ? `${Math.round(miles * 5280)} ft` : `${miles.toFixed(2)} mi`;
 }
 
 function toPoint(latlng: L.LatLng): LngLat {
@@ -267,6 +288,8 @@ export function MapView({
   const userLocationMarkerRef = useRef<L.Marker | null>(null);
   const thermoFromMarkerRef = useRef<L.Marker | null>(null);
   const thermoToMarkerRef = useRef<L.Marker | null>(null);
+  const thermoLineRef = useRef<L.Polyline | null>(null);
+  const thermoDistanceMarkerRef = useRef<L.Marker | null>(null);
   const onSelectPointRef = useRef(onSelectPoint);
   const [draftDragPoint, setDraftDragPoint] = useState<LngLat | null>(null);
   const [thermometerDrag, setThermometerDrag] = useState<ThermometerDrag | null>(null);
@@ -470,6 +493,10 @@ export function MapView({
           ref.current = null;
         }
       }
+      thermoLineRef.current?.remove();
+      thermoLineRef.current = null;
+      thermoDistanceMarkerRef.current?.remove();
+      thermoDistanceMarkerRef.current = null;
     };
 
     if (!draftConstraint || !showCurrentQuestion) {
@@ -499,10 +526,34 @@ export function MapView({
       }
       const fromMarker = thermoFromMarkerRef.current;
       const toMarker = thermoToMarkerRef.current;
+      const fromLatLng: L.LatLngExpression = [draftConstraint.from.lat, draftConstraint.from.lng];
+      const toLatLng: L.LatLngExpression = [draftConstraint.to.lat, draftConstraint.to.lng];
+      const middle = midpoint(draftConstraint.from, draftConstraint.to);
+      if (!thermoLineRef.current) {
+        thermoLineRef.current = L.polyline([fromLatLng, toLatLng], {
+          color,
+          weight: 3,
+          opacity: 0.9,
+          interactive: false,
+        }).addTo(map);
+      }
+      if (!thermoDistanceMarkerRef.current) {
+        thermoDistanceMarkerRef.current = L.marker([middle.lat, middle.lng], {
+          icon: thermometerDistanceIcon(thermometerDistanceLabel(draftConstraint.from, draftConstraint.to), color),
+          interactive: false,
+          zIndexOffset: 1190,
+        }).addTo(map);
+      }
+      thermoLineRef.current.setStyle({ color });
+      thermoLineRef.current.setLatLngs([fromLatLng, toLatLng]);
+      thermoDistanceMarkerRef.current.setIcon(
+        thermometerDistanceIcon(thermometerDistanceLabel(draftConstraint.from, draftConstraint.to), color),
+      );
+      thermoDistanceMarkerRef.current.setLatLng([middle.lat, middle.lng]);
       fromMarker.setIcon(handleIcon("A", color));
       toMarker.setIcon(handleIcon("B", color));
-      fromMarker.setLatLng([draftConstraint.from.lat, draftConstraint.from.lng]);
-      toMarker.setLatLng([draftConstraint.to.lat, draftConstraint.to.lng]);
+      fromMarker.setLatLng(fromLatLng);
+      toMarker.setLatLng(toLatLng);
       const cleanupFrom = attachManualDrag(
         map,
         fromMarker,

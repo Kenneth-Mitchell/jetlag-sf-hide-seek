@@ -209,6 +209,7 @@ export function App() {
   const enabledConstraints = constraints.filter((constraint) => constraint.enabled);
   const liveThermoFrom = thermoFromPreview ?? thermoFrom;
   const liveThermoTo = thermoToPreview ?? thermoTo;
+  const liveThermoDistance = distanceMiles(liveThermoFrom, liveThermoTo);
   const liveSelectedPoint = draftPointPreview ?? selectedPoint;
   const categoryFeatures = getCategoryFeatures(category);
   const dataFeatures = getCategoryFeatures(dataCategory);
@@ -1085,7 +1086,9 @@ export function App() {
 
                 {questionKind === "thermometer" && (
                   <>
-                    <p className="mini-copy">A {pointLabel(liveThermoFrom)} · B {pointLabel(liveThermoTo)}</p>
+                    <p className="mini-copy">
+                      A {pointLabel(liveThermoFrom)} · B {pointLabel(liveThermoTo)} · {liveThermoDistance.toFixed(2)} mi
+                    </p>
                     <Segmented value={thermoAnswer} onChange={setThermoAnswer} options={["warmer", "colder", "same"]} />
                   </>
                 )}

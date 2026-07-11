@@ -215,6 +215,25 @@ button:disabled {
   transform: translateY(0.5px);
 }
 
+.thermometer-distance-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  max-width: 74px;
+  min-height: 22px;
+  padding: 2px 7px;
+  border: 2px solid var(--thermometer-color);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.92);
+  color: #101820;
+  box-shadow: 0 2px 7px rgb(16 24 32 / 0.2);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .hider-location-marker {
   display: grid;
   place-items: center;
