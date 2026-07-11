@@ -250,32 +250,13 @@ button:disabled {
   font-size: 0.46rem;
   font-weight: 900;
   line-height: 1;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
 }
 
 .hider-location-marker span {
   transform: translateY(0.5px);
-}
-
-.user-location-marker {
-  display: grid;
-  place-items: center;
-  width: 21px;
-  height: 21px;
-  margin: 3.5px;
-  border: 2px solid #ffffff;
-  border-radius: 999px;
-  background: #2563eb;
-  box-shadow:
-    0 0 0 3px rgb(37 99 235 / 0.24),
-    0 2px 8px rgb(16 24 32 / 0.24);
-}
-
-.user-location-marker::after {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #ffffff;
 }
 
 .control-pane {

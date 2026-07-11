@@ -328,7 +328,6 @@ export function App() {
   const [draftPointPreview, setDraftPointPreview] = useState<LngLat | null>(null);
   const [thermoFromPreview, setThermoFromPreview] = useState<LngLat | null>(null);
   const [thermoToPreview, setThermoToPreview] = useState<LngLat | null>(null);
-  const [userLocation, setUserLocation] = useState<LngLat | null>(null);
   const [showAllAnswers, setShowAllAnswers] = useState(false);
   const [mapLayers, setMapLayers] = useState<Record<MapLayerKey, boolean>>({
     stations: true,
@@ -348,6 +347,7 @@ export function App() {
   const layerControlRef = useRef<HTMLDivElement | null>(null);
   const hasActiveQuestion = questionKind !== "none";
   const appShellStyle = { "--mobile-map-height": `${mobileMapHeight}svh` } as CSSProperties;
+  const showSelectedPointMarker = mode !== "seeker" || questionKind === "none";
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(constraints));
@@ -956,7 +956,6 @@ export function App() {
       setThermoFromPreview(null);
       setThermoToPreview(null);
       setSelectedPoint(nextPoint);
-      setUserLocation(nextPoint);
       const accuracy = Number.isFinite(position.coords.accuracy)
         ? `accuracy ${Math.round(position.coords.accuracy)} m`
         : "accuracy unknown";
@@ -1090,8 +1089,7 @@ export function App() {
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
           constraints={appliedMapConstraints}
-          currentPoint={mode === "hider" ? selectedPoint : undefined}
-          userLocation={userLocation ?? undefined}
+          currentPoint={showSelectedPointMarker ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
           answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
           showStations={mapLayers.stations}
@@ -1100,6 +1098,7 @@ export function App() {
           showAnswerRegions={mapLayers.answerRegions}
           stationColor={stationColor}
           onSelectPoint={handleMapPointSelect}
+          onCurrentPointChange={moveDraftPoint}
           onDraftPointPreview={previewDraftPoint}
           onDraftPointChange={moveDraftPoint}
           onThermoFromPreview={previewThermoFrom}
