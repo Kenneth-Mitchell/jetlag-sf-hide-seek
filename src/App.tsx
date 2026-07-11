@@ -8,10 +8,10 @@ import {
   ListChecks,
   MapPin,
   Maximize2,
-  Menu,
   Minimize2,
   Pencil,
   RotateCcw,
+  Settings,
   Share2,
   Trash2,
   X,
@@ -1195,7 +1195,7 @@ export function App() {
             aria-label="Change view"
             title="Change view"
           >
-            <Menu size={18} />
+            <Settings size={18} />
           </button>
         </header>
 
