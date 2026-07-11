@@ -79,10 +79,10 @@ function handleIcon(label: string, color: string): L.DivIcon {
   });
 }
 
-function hiderIcon(): L.DivIcon {
+function currentLocationIcon(): L.DivIcon {
   return L.divIcon({
     className: "",
-    html: `<div class="hider-location-marker"><span>H</span></div>`,
+    html: `<div class="current-location-marker"></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
@@ -382,13 +382,13 @@ export function MapView({
     const latLng: L.LatLngExpression = [currentPoint.lat, currentPoint.lng];
     if (!currentPointMarkerRef.current) {
       currentPointMarkerRef.current = L.marker(latLng, {
-        icon: hiderIcon(),
+        icon: currentLocationIcon(),
         draggable: false,
         zIndexOffset: 1300,
       }).addTo(map);
     }
     const marker = currentPointMarkerRef.current;
-    marker.setIcon(hiderIcon());
+    marker.setIcon(currentLocationIcon());
     marker.setLatLng(latLng);
 
     const panBounds = panBoundsRef.current;

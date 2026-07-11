@@ -238,7 +238,7 @@ button:disabled {
   white-space: nowrap;
 }
 
-.hider-location-marker {
+.current-location-marker {
   display: grid;
   place-items: center;
   width: 18px;
@@ -247,20 +247,20 @@ button:disabled {
   border: 2px solid #ffffff;
   border-radius: 999px;
   background: #db2777;
-  color: #ffffff;
   box-shadow:
     0 0 0 2px rgb(219 39 119 / 0.3),
     0 2px 7px rgb(16 24 32 / 0.22);
-  font-size: 0.46rem;
-  font-weight: 900;
-  line-height: 1;
   touch-action: none;
   user-select: none;
   cursor: grab;
 }
 
-.hider-location-marker span {
-  transform: translateY(0.5px);
+.current-location-marker::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #ffffff;
 }
 
 .control-pane {
