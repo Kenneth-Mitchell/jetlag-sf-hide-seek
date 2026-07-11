@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
+import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES, UNSUPPORTED_QUESTIONS } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
@@ -1438,6 +1438,14 @@ export function App() {
               <AnswerRow label="Valid stations" value={`${validStations.length}`} />
               <AnswerRow label="Active constraints" value={`${enabledConstraints.length}`} />
               <AnswerRow label="Snapshot date" value={snapshot.generatedAt.slice(0, 10)} />
+            </div>
+            <div className="warning-box">
+              <strong>Not yet adjudicated</strong>
+              {UNSUPPORTED_QUESTIONS.map((question) => (
+                <p key={question.name}>
+                  <b>{question.name}:</b> {question.reason}
+                </p>
+              ))}
             </div>
             <label>
               Browse category

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES, UNSUPPORTED_QUESTIONS } from "../src/data/rules";
 import { snapshot, validStations } from "../src/lib/snapshot";
 
 describe("frozen SF snapshot", () => {
@@ -31,5 +32,17 @@ describe("frozen SF snapshot", () => {
     expect(snapshot.geometries.playableArea.features).toHaveLength(11);
     expect(snapshot.geometries.coastline.features).toHaveLength(1);
     expect(snapshot.geometries.coastline.features[0].geometry?.type).toBe("MultiPolygon");
+  });
+
+  it("exposes farmers markets where frozen point data can answer the question", () => {
+    expect(MATCHING_CATEGORIES).toContain("farmersMarkets");
+    expect(MEASURING_CATEGORIES).toContain("farmersMarkets");
+    expect(TENTACLE_CATEGORIES).toContain("farmersMarkets");
+  });
+
+  it("names valid questions that still need frozen geometry before filtering", () => {
+    expect(UNSUPPORTED_QUESTIONS.map((question) => question.name)).toEqual(
+      expect.arrayContaining(["Sea level", "Body of water", "Street or path"]),
+    );
   });
 });

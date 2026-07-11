@@ -908,6 +908,11 @@ button.answer-chip:hover {
   margin: 0;
 }
 
+.warning-box strong,
+.warning-box b {
+  font-weight: 900;
+}
+
 @media (min-width: 900px) {
   .app-shell {
     grid-template-columns: minmax(0, 1.2fr) minmax(400px, 0.8fr);
