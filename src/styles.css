@@ -3,6 +3,10 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #101820;
   background: #f8faf7;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -67,8 +71,8 @@ button:disabled {
 
 .map-layer-control {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: calc(10px + var(--safe-top));
+  right: calc(10px + var(--safe-right));
   z-index: 500;
   display: grid;
   justify-items: end;
@@ -940,7 +944,7 @@ button.answer-chip:hover {
   }
 
   .app-shell.map-focus .map-pane {
-    height: calc(100svh - 34px);
+    height: calc(100svh - 34px - var(--safe-top));
   }
 
   .app-shell.sheet-dragging .map-pane {
@@ -953,8 +957,8 @@ button.answer-chip:hover {
 
   .map-focus-button {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: calc(8px + var(--safe-top));
+    left: calc(8px + var(--safe-left));
     z-index: 500;
     display: grid;
     place-items: center;
@@ -970,8 +974,8 @@ button.answer-chip:hover {
   }
 
   .map-layer-control {
-    top: 8px;
-    right: 8px;
+    top: calc(8px + var(--safe-top));
+    right: calc(8px + var(--safe-right));
     gap: 5px;
   }
 
@@ -1003,11 +1007,11 @@ button.answer-chip:hover {
     position: relative;
     margin-top: -18px;
     gap: 10px;
-    padding: 10px;
+    padding: 10px max(10px, var(--safe-right)) 10px max(10px, var(--safe-left));
     border-top: 1px solid #d9e2df;
     border-radius: 18px 18px 0 0;
     box-shadow: 0 -8px 26px rgb(16 24 32 / 0.12);
-    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    padding-bottom: calc(14px + var(--safe-bottom));
   }
 
   .sheet-resize-handle {

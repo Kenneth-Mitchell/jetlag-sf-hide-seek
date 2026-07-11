@@ -1039,7 +1039,7 @@ export function App() {
   }, []);
 
   const setSheetPositionFromPointer = useCallback((clientY: number) => {
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportHeight = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
     if (!viewportHeight) return;
     const nextMapHeight = ((clientY + 18) / viewportHeight) * 100;
     setMobileMapHeight(clampMobileMapHeight(nextMapHeight));
