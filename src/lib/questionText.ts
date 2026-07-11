@@ -1,5 +1,6 @@
 import { CATEGORY_LABELS } from "../data/rules";
-import { nearestFeature, nearestFeatureWithDistance } from "./geo";
+import { districtNumberAtPoint } from "./districts";
+import { distanceMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./linearCategories";
 import { getCategoryFeatures, snapshot } from "./snapshot";
 import type { CategoryKey, Constraint, LngLat } from "./types";
@@ -53,10 +54,21 @@ export function formatQuestionDraft({
     return `Compared to me, are you closer to or farther from the nearest ${categoryPhrase(category)}?${suffix}`;
   }
   if (kind === "tentacles") {
-    return `Of the ${categoryPhrase(category)} locations within ${tentacleRadius.toFixed(1)} miles of me, which one are you nearest to?`;
+    const options = getCategoryFeatures(category)
+      .map((feature) => ({
+        feature,
+        miles: distanceMiles(point, lngLatFromFeature(feature)),
+      }))
+      .filter((item) => item.miles <= tentacleRadius)
+      .sort((a, b) => a.miles - b.miles)
+      .map(({ feature }) => feature.properties.name);
+    const suffix = options.length > 0 ? ` Options: ${options.join("; ")}.` : "";
+    return `Of the ${categoryPhrase(category)} locations within ${tentacleRadius.toFixed(1)} miles of me, which one are you nearest to?${suffix}`;
   }
   if (kind === "district") {
-    return "Are you in the same San Francisco Supervisorial District as me?";
+    const district = districtNumberAtPoint(point);
+    const suffix = district ? ` Mine is D${district}.` : "";
+    return `Are you in the same San Francisco Supervisorial District as me?${suffix}`;
   }
   return `Does the ${transitLine.trim() || "[line]"} stop in your hiding zone?`;
 }

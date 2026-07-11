@@ -637,6 +637,43 @@ textarea {
   font-size: 0.86rem;
 }
 
+.hider-question-tool {
+  display: grid;
+  gap: 8px;
+}
+
+.hider-question-tool textarea {
+  min-height: 96px;
+}
+
+.hider-answer-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #cfe1dc;
+  border-radius: 8px;
+  background: #f2fbf8;
+}
+
+.hider-answer-card span {
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hider-answer-card strong {
+  color: #101820;
+  font-size: 1.2rem;
+}
+
+.hider-answer-card p {
+  margin: 0;
+  color: #52615e;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .question-preview {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
