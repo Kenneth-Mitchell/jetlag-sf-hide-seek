@@ -41,6 +41,7 @@ export type CategoryKey =
   | "hospitals"
   | "foreignConsulates"
   | "farmersMarkets"
+  | "parks"
   | "coastline";
 
 export type Snapshot = {
@@ -48,7 +49,10 @@ export type Snapshot = {
   generatedAt: string;
   rulesVersion: string;
   hideRadiusMiles: number;
-  sources: Record<string, string>;
+  sources: {
+    [key: string]: string | Record<string, string> | undefined;
+    deferredGeometry?: Record<string, string>;
+  };
   warnings: string[];
   integrity: Record<string, { features: number; checksum: string; sheet?: string; source?: string }>;
   layers: Record<string, FeatureCollection>;
@@ -56,6 +60,7 @@ export type Snapshot = {
     playableArea: GeoJSON.FeatureCollection;
     supervisorDistricts: GeoJSON.FeatureCollection;
     coastline: GeoJSON.FeatureCollection;
+    parkPolygons: GeoJSON.FeatureCollection;
   };
 };
 

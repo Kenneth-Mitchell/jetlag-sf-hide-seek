@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import * as turf from "@turf/turf";
 import XLSX from "xlsx";
 
 const ROOT = process.cwd();
@@ -149,6 +150,17 @@ const GEOMETRY_SOURCES = {
     "https://data.sfgov.org/resource/f2zs-jevy.geojson?$limit=5000",
   coastline:
     "https://data.sfgov.org/resource/txuc-3kzm.geojson?$limit=5000",
+  parkPolygons:
+    "https://data.sfgov.org/resource/gtr9-ntp6.geojson?$limit=5000",
+};
+
+const DEFERRED_GEOMETRY_SOURCES = {
+  streetPaths:
+    "https://data.sfgov.org/resource/3psu-pn9h.geojson?$limit=50000",
+  waterBodies:
+    "https://data.sfgov.org/api/views/j829-i3ix",
+  elevationContours:
+    "https://data.sfgov.org/api/views/rnbg-2qxw",
 };
 
 function normalizeHeader(value) {
@@ -544,7 +556,7 @@ async function buildPointLayer(workbook, key, config, cache, warnings) {
     warnings.push("Dog Parks: sheet has 33 rows; rules prose says 36. Using sheet as authoritative.");
   }
   if (key === "farmersMarkets") {
-    warnings.push("Farmers Markets ingested but disabled; rules doc marks this homebrew question untested.");
+    warnings.push("Farmers Markets ingested and enabled from frozen sheet data; rules doc marks this homebrew question untested.");
   }
   if (key === "muniStops") {
     warnings.push("All Muni Stops ingested as reference-only data; Game Valid Stations remains the hiding-station universe.");
@@ -562,6 +574,41 @@ async function fetchGeoJson(url) {
     throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
   }
   return response.json();
+}
+
+function compactGeometryFeature(feature, key, index) {
+  if (!feature?.geometry) return undefined;
+
+  const simplified = turf.simplify(feature, {
+    tolerance: 0.00008,
+    highQuality: false,
+    mutate: false,
+  });
+
+  if (!simplified.geometry) return undefined;
+  if (key === "parkPolygons") {
+    return {
+      type: "Feature",
+      geometry: simplified.geometry,
+      properties: {
+        id: `park:${feature.properties?.property_id ?? feature.properties?.objectid ?? index}`,
+        name: feature.properties?.property_name ?? "Park",
+        propertyType: feature.properties?.propertytype,
+        sourceId: feature.properties?.property_id ?? feature.properties?.objectid,
+      },
+    };
+  }
+  return feature;
+}
+
+function compactGeometryCollection(geojson, key) {
+  if (key !== "parkPolygons") return geojson;
+  return {
+    type: "FeatureCollection",
+    features: (geojson.features ?? [])
+      .map((feature, index) => compactGeometryFeature(feature, key, index))
+      .filter(Boolean),
+  };
 }
 
 async function main() {
@@ -603,11 +650,11 @@ async function main() {
       if (!geojson) throw error;
       console.warn(`WARN Reusing existing ${key} geometry because ${url} could not be fetched.`);
     }
-    geometries[key] = geojson;
+    geometries[key] = compactGeometryCollection(geojson, key);
     integrity[key] = {
       source: url,
-      features: geojson.features?.length ?? 0,
-      checksum: checksum(JSON.stringify(geojson)),
+      features: geometries[key].features?.length ?? 0,
+      checksum: checksum(JSON.stringify(geometries[key])),
     };
   }
 
@@ -625,6 +672,8 @@ async function main() {
       playableArea: GEOMETRY_SOURCES.playableArea,
       supervisorDistricts: GEOMETRY_SOURCES.supervisorDistricts,
       coastline: GEOMETRY_SOURCES.coastline,
+      parkPolygons: GEOMETRY_SOURCES.parkPolygons,
+      deferredGeometry: DEFERRED_GEOMETRY_SOURCES,
     },
     warnings,
     integrity,

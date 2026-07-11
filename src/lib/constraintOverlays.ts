@@ -1,4 +1,5 @@
 import * as turf from "@turf/turf";
+import { arealCategoryBufferFeatures, arealCategoryFeatures, distanceToArealCategoryMiles, isArealCategory } from "./arealCategories";
 import { constraintColor } from "./colors";
 import { districtAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./districts";
 import { lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
@@ -248,6 +249,27 @@ function measuringOverlay(constraint: Extract<Constraint, { kind: "measuring" }>
       dashArray: "",
     }));
     return [...bandOverlays, ...lineOverlays];
+  }
+
+  if (isArealCategory(constraint.category)) {
+    const referenceMiles = distanceToArealCategoryMiles(constraint.point, constraint.category);
+    if (referenceMiles === undefined) return [];
+    const bandMode: ConstraintOverlay["mode"] = constraint.answer === "closer" ? "keep" : "exclude";
+    const bandOverlays = arealCategoryBufferFeatures(constraint.category, referenceMiles).map((feature) => ({
+      kind: "polygon" as const,
+      feature,
+      mode: bandMode,
+      stroke: false,
+      fillOpacity: constraint.answer === "closer" ? 0.14 : 0.08,
+    }));
+    const referenceOverlays = arealCategoryFeatures(constraint.category).map((feature) => ({
+      kind: "polygon" as const,
+      feature,
+      mode: "reference" as const,
+      fillOpacity: 0.06,
+      weight: 1.6,
+    }));
+    return [...bandOverlays, ...referenceOverlays];
   }
 
   const reference = nearestFeatureWithDistance(constraint.point, getCategoryFeatures(constraint.category));

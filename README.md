@@ -18,7 +18,11 @@ Implemented:
 - DataSF supervisor district and trimmed playable-area geometry:
   - `https://data.sfgov.org/resource/f2zs-jevy.geojson`
   - `https://data.sfgov.org/resource/hcgx-vtsb.geojson`
-- Seeker constraints for radius, thermometer, nearest-POI matching, measuring, tentacles, supervisorial district, and an experimental valid-station based transit-line check.
+- DataSF coastline and park polygon geometry for geometry-backed measuring:
+  - `https://data.sfgov.org/resource/txuc-3kzm.geojson`
+  - `https://data.sfgov.org/resource/gtr9-ntp6.geojson`
+- SFMTA GTFS per-route stop ingestion for transit-line checks near valid hiding stations.
+- Seeker constraints for radius, thermometer, nearest-POI matching, measuring, tentacles, supervisorial district, and transit line.
 - Vector geometry overlays on the map after applying questions, alongside in/out candidate station zones:
   - circles for radius and measuring thresholds
   - half-plane and bisector for thermometer
@@ -40,14 +44,13 @@ Implemented:
 - Local persistence and copyable state links.
 - PWA manifest and service worker for app shell caching.
 
-Not yet complete enough for a tournament game:
+Still incomplete or intentionally deferred:
 
-- Street/path, coastline, sea-level, body-of-water, and park polygon measuring need additional frozen geometry layers.
-- Transit Line currently uses line metadata on valid stations, not complete per-route stop lists from SFMTA.
+- Street/path: official street geometry source is identified, but the trace/photo-style question still needs UI and adjudication rules before bundling the large layer.
+- Sea-level and body-of-water: DataSF map-layer pages are identified, but their current geospatial export endpoints returned unusable/truncated GeoJSON during local testing, so they still need a reliable frozen source.
 - Station hiding zones are displayed as ¼-mile circles and filtered conservatively; clipping against the playable area is shown as boundary context but not yet persisted as clipped zone polygons.
-- Coastline is still unavailable as a question until a frozen coastline geometry layer is added to the snapshot; it should be rendered as line/buffer geometry when implemented.
 - Basemap tiles come from OpenStreetMap at runtime and are cached opportunistically after viewing; fully bundled offline tiles are not included yet.
-- No hosted deployment URL is recorded yet.
+- Hosted deployment: `https://kenneth-mitchell.github.io/jetlag-sf-hide-seek/`
 
 ## Source-Of-Truth Decision
 
@@ -56,7 +59,7 @@ The spreadsheet wins over OpenStreetMap for all curated POI categories and valid
 Known snapshot caveats are surfaced in the app:
 
 - Dog Parks: sheet has 33 rows; rules prose says 36. The app uses the sheet.
-- Farmers Markets are ingested but disabled because the rule is marked untested.
+- Farmers Markets are ingested and enabled from the frozen sheet data, but the rule is marked untested.
 - All Muni Stops are reference-only; valid hiding stations remain the finite 193-row sheet tab.
 
 ## Run Locally
@@ -98,16 +101,8 @@ Current tests cover:
 
 ## Deployment
 
-This is a static Vite app after `npm run build`. The Vercel CLI is not installed in this environment; install it with:
+This is a static Vite app after `npm run build`. The current public deployment is:
 
-```bash
-npm i -g vercel
+```text
+https://kenneth-mitchell.github.io/jetlag-sf-hide-seek/
 ```
-
-Then deploy with:
-
-```bash
-vercel deploy
-```
-
-Record the production URL here once deployed.

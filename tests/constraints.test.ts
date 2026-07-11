@@ -1,5 +1,6 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
+import { distanceToArealCategoryMiles, nearestArealCategoryWithDistance } from "../src/lib/arealCategories";
 import { ANSWER_COLORS, QUESTION_COLORS, answerColor, nextQuestionColor } from "../src/lib/colors";
 import { buildConstraintOverlays, buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
@@ -297,6 +298,17 @@ describe("constraint engine", () => {
     };
     expect(hiderDistance).toBeLessThan(seekerDistance ?? 0);
     expect(stationSurvivesConstraint(fixture, constraint)).toBe(true);
+  });
+
+  it("measures parks from frozen park polygons", () => {
+    const glenCanyon = { lat: 37.74017, lng: -122.44268 };
+    const vanNessDistance = distanceToArealCategoryMiles(vanNessMarket, "parks");
+    const parkDistance = distanceToArealCategoryMiles(glenCanyon, "parks");
+    const nearest = nearestArealCategoryWithDistance(glenCanyon, "parks");
+
+    expect(vanNessDistance).toBeGreaterThan(0.02);
+    expect(parkDistance).toBeLessThan(0.02);
+    expect(nearest?.name).toMatch(/Glen Canyon|Park/i);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

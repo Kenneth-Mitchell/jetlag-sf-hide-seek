@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES, UNSUPPORTED_QUESTIONS } from "./data/rules";
+import { distanceToArealCategoryMiles, isArealCategory } from "./lib/arealCategories";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
@@ -487,6 +488,8 @@ export function App() {
     if (questionKind === "measuring") {
       const distance = isLinearCategory(category)
         ? distanceToLinearCategoryMiles(liveSelectedPoint, category)
+        : isArealCategory(category)
+          ? distanceToArealCategoryMiles(liveSelectedPoint, category)
         : nearestPoi
           ? distanceMiles(liveSelectedPoint, lngLatFromFeature(nearestPoi))
           : undefined;

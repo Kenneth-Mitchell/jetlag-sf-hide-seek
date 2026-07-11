@@ -1,4 +1,5 @@
 import { CATEGORY_LABELS } from "../data/rules";
+import { distanceToArealCategoryMiles, isArealCategory, nearestArealCategoryWithDistance } from "./arealCategories";
 import { distanceMiles, distanceToFeatureMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, nearestOtherDistance, pointInFeatureCollection, sampleStationZone } from "./geo";
 import { distanceToLinearCategoryMiles, isLinearCategory, nearestLinearCategoryWithDistance } from "./linearCategories";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
@@ -45,6 +46,7 @@ function districtAt(point: LngLat): string | undefined {
 
 function measuringDistance(point: LngLat, category: Extract<Constraint, { kind: "measuring" }>["category"]): number | undefined {
   if (isLinearCategory(category)) return distanceToLinearCategoryMiles(point, category);
+  if (isArealCategory(category)) return distanceToArealCategoryMiles(point, category);
   return nearestFeatureWithDistance(point, getCategoryFeatures(category))?.miles;
 }
 
@@ -193,6 +195,18 @@ export function canonicalAnswers(point: LngLat) {
       (Object.keys(CATEGORY_LABELS) as Array<keyof typeof CATEGORY_LABELS>).map((category) => {
         if (isLinearCategory(category)) {
           const nearest = nearestLinearCategoryWithDistance(point, category);
+          return [
+            category,
+            nearest
+              ? {
+                  name: nearest.name,
+                  miles: nearest.miles,
+                }
+              : undefined,
+          ];
+        }
+        if (isArealCategory(category)) {
+          const nearest = nearestArealCategoryWithDistance(point, category);
           return [
             category,
             nearest

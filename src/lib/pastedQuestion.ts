@@ -2,6 +2,7 @@ import { CATEGORY_LABELS } from "../data/rules";
 import { pointSatisfiesConstraint } from "./constraints";
 import { districtNumberAtPoint } from "./districts";
 import { distanceMiles, lngLatFromFeature, nearestFeature } from "./geo";
+import { distanceToArealCategoryMiles, isArealCategory } from "./arealCategories";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./linearCategories";
 import { getCategoryFeatures } from "./snapshot";
 import type { CategoryKey, LngLat } from "./types";
@@ -32,6 +33,7 @@ function categoryFromPhrase(value: string): CategoryKey | undefined {
 
 function distanceForCategory(point: LngLat, category: CategoryKey): number | undefined {
   if (isLinearCategory(category)) return distanceToLinearCategoryMiles(point, category);
+  if (isArealCategory(category)) return distanceToArealCategoryMiles(point, category);
   const nearest = nearestFeature(point, getCategoryFeatures(category));
   return nearest ? distanceMiles(point, lngLatFromFeature(nearest)) : undefined;
 }

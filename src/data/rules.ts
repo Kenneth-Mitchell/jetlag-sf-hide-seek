@@ -10,6 +10,7 @@ export const CATEGORY_LABELS = {
   hospitals: "Hospital",
   foreignConsulates: "Foreign consulate",
   farmersMarkets: "Farmers market",
+  parks: "Park",
   coastline: "Coastline",
 } as const;
 
@@ -37,6 +38,7 @@ export const MEASURING_CATEGORIES = [
   "hospitals",
   "foreignConsulates",
   "farmersMarkets",
+  "parks",
   "coastline",
 ] as const;
 
@@ -71,14 +73,14 @@ export const UNSUPPORTED_QUESTIONS = [
   },
   {
     name: "Street or path",
-    reason: "Needs a frozen street/path network and tracing rules.",
-  },
-  {
-    name: "Residential parking permit zone",
-    reason: "Needs frozen RPP zone polygons/colors.",
+    reason: "Official street/path source is identified, but the trace-style photo question still needs UI/adjudication rules before bundling the large geometry layer.",
   },
   {
     name: "Photo questions",
     reason: "Require hider-provided photos or additional object-specific datasets.",
+  },
+  {
+    name: "Residential parking permit zone",
+    reason: "Needs frozen RPP zone polygons/colors.",
   },
 ] as const;

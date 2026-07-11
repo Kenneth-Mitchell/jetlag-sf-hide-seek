@@ -1,4 +1,5 @@
 import { CATEGORY_LABELS } from "../data/rules";
+import { isArealCategory, nearestArealCategoryWithDistance } from "./arealCategories";
 import { districtNumberAtPoint } from "./districts";
 import { distanceMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./linearCategories";
@@ -48,6 +49,11 @@ export function formatQuestionDraft({
       const distance = distanceToLinearCategoryMiles(point, category);
       const suffix = distance === undefined ? "" : ` My distance is ${distance.toFixed(2)} miles.`;
       return `Compared to me, are you closer to or farther from the ${categoryPhrase(category)}?${suffix}`;
+    }
+    if (isArealCategory(category)) {
+      const nearest = nearestArealCategoryWithDistance(point, category);
+      const suffix = nearest ? ` My nearest is ${nearest.name} (${nearest.miles.toFixed(2)} miles).` : "";
+      return `Compared to me, are you closer to or farther from the nearest ${categoryPhrase(category)}?${suffix}`;
     }
     const nearest = nearestFeatureWithDistance(point, getCategoryFeatures(category));
     const suffix = nearest ? ` My nearest is ${nearest.feature.properties.name} (${nearest.miles.toFixed(2)} miles).` : "";

@@ -32,6 +32,7 @@ describe("frozen SF snapshot", () => {
     expect(snapshot.geometries.playableArea.features).toHaveLength(11);
     expect(snapshot.geometries.coastline.features).toHaveLength(1);
     expect(snapshot.geometries.coastline.features[0].geometry?.type).toBe("MultiPolygon");
+    expect(snapshot.geometries.parkPolygons.features).toHaveLength(255);
   });
 
   it("exposes farmers markets where frozen point data can answer the question", () => {
@@ -44,5 +45,8 @@ describe("frozen SF snapshot", () => {
     expect(UNSUPPORTED_QUESTIONS.map((question) => question.name)).toEqual(
       expect.arrayContaining(["Sea level", "Body of water", "Street or path"]),
     );
+    expect(snapshot.sources.deferredGeometry?.streetPaths).toContain("3psu-pn9h");
+    expect(snapshot.sources.deferredGeometry?.waterBodies).toContain("j829-i3ix");
+    expect(snapshot.sources.deferredGeometry?.elevationContours).toContain("rnbg-2qxw");
   });
 });
