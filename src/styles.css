@@ -1039,7 +1039,9 @@ button.answer-chip:hover {
   }
 
   .question-composer-panel,
-  .settings-stack {
+  .settings-stack,
+  .hider-panel,
+  .data-panel {
     order: 2;
   }
 

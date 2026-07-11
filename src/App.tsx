@@ -8,10 +8,10 @@ import {
   ListChecks,
   MapPin,
   Maximize2,
+  Menu,
   Minimize2,
   Pencil,
   RotateCcw,
-  Settings,
   Share2,
   Trash2,
   X,
@@ -1016,10 +1016,10 @@ export function App() {
             type="button"
             className="square-icon-button settings-open-button"
             onClick={() => setShowSettings(true)}
-            aria-label="Open settings"
-            title="Settings"
+            aria-label="Change view"
+            title="Change view"
           >
-            <Settings size={18} />
+            <Menu size={18} />
           </button>
         </header>
 
@@ -1365,11 +1365,11 @@ export function App() {
           </div>
         )}
 
-        {(showSettings || mode !== "seeker") && (
+        {showSettings && (
           <div className="panel-stack settings-stack">
             <section className="tool-panel settings-panel">
               <div className="section-heading">
-                <h2>Settings</h2>
+                <h2>View</h2>
                 <button type="button" className="square-icon-button" onClick={() => setShowSettings(false)} title="Close settings">
                   <X size={17} />
                 </button>
@@ -1382,7 +1382,7 @@ export function App() {
                     className={mode === nextMode ? "active" : ""}
                     onClick={() => {
                       setMode(nextMode);
-                      if (nextMode === "seeker") setShowSettings(false);
+                      setShowSettings(false);
                     }}
                     aria-pressed={mode === nextMode}
                   >
@@ -1403,60 +1403,60 @@ export function App() {
               </div>
               {locationStatus && <p className="status-line">{locationStatus}</p>}
             </section>
-
-            {mode === "hider" && (
-              <section className="tool-panel hider-panel">
-                <div className="section-heading">
-                  <h2>Canonical Answers</h2>
-                  <span>{pointLabel(selectedPoint)}</span>
-                </div>
-                <div className="answer-list">
-                  <AnswerRow label="Nearest valid station" value={answers.nearestValidStation?.feature.properties.name ?? "None"} />
-                  <AnswerRow label="Supervisorial district" value={answers.district ? `D${answers.district}` : "Unknown"} />
-                  {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => {
-                    const answer = answers.nearest[key] as { name: string; miles: number } | undefined;
-                    return (
-                      <AnswerRow
-                        key={key}
-                        label={key === "coastline" ? "Distance to Coastline" : `Nearest ${CATEGORY_LABELS[key]}`}
-                        value={answer ? `${answer.name} · ${answer.miles.toFixed(2)} mi` : "No data"}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {mode === "data" && (
-              <section className="tool-panel data-panel">
-                <div className="section-heading">
-                  <h2>Frozen Snapshot</h2>
-                  <span>{snapshot.generatedAt.slice(0, 10)}</span>
-                </div>
-                <div className="answer-list">
-                  <AnswerRow label="Rules" value={snapshot.rulesVersion} />
-                  <AnswerRow label="Valid stations" value={`${validStations.length}`} />
-                  <AnswerRow label="Active constraints" value={`${enabledConstraints.length}`} />
-                  <AnswerRow label="Snapshot date" value={snapshot.generatedAt.slice(0, 10)} />
-                </div>
-                <label>
-                  Browse category
-                  <select value={dataCategory} onChange={(event) => setDataCategory(event.target.value as CategoryKey)}>
-                    {pointCategories.map((key) => (
-                      <option key={key} value={key}>
-                        {CATEGORY_LABELS[key]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="data-list">
-                  {dataFeatures.map((feature) => (
-                    <DataItem key={feature.properties.id} feature={feature} selectedPoint={selectedPoint} />
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
+        )}
+
+        {!showSettings && mode === "hider" && (
+          <section className="tool-panel hider-panel">
+            <div className="section-heading">
+              <h2>Canonical Answers</h2>
+              <span>{pointLabel(selectedPoint)}</span>
+            </div>
+            <div className="answer-list">
+              <AnswerRow label="Nearest valid station" value={answers.nearestValidStation?.feature.properties.name ?? "None"} />
+              <AnswerRow label="Supervisorial district" value={answers.district ? `D${answers.district}` : "Unknown"} />
+              {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => {
+                const answer = answers.nearest[key] as { name: string; miles: number } | undefined;
+                return (
+                  <AnswerRow
+                    key={key}
+                    label={key === "coastline" ? "Distance to Coastline" : `Nearest ${CATEGORY_LABELS[key]}`}
+                    value={answer ? `${answer.name} · ${answer.miles.toFixed(2)} mi` : "No data"}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {!showSettings && mode === "data" && (
+          <section className="tool-panel data-panel">
+            <div className="section-heading">
+              <h2>Frozen Snapshot</h2>
+              <span>{snapshot.generatedAt.slice(0, 10)}</span>
+            </div>
+            <div className="answer-list">
+              <AnswerRow label="Rules" value={snapshot.rulesVersion} />
+              <AnswerRow label="Valid stations" value={`${validStations.length}`} />
+              <AnswerRow label="Active constraints" value={`${enabledConstraints.length}`} />
+              <AnswerRow label="Snapshot date" value={snapshot.generatedAt.slice(0, 10)} />
+            </div>
+            <label>
+              Browse category
+              <select value={dataCategory} onChange={(event) => setDataCategory(event.target.value as CategoryKey)}>
+                {pointCategories.map((key) => (
+                  <option key={key} value={key}>
+                    {CATEGORY_LABELS[key]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="data-list">
+              {dataFeatures.map((feature) => (
+                <DataItem key={feature.properties.id} feature={feature} selectedPoint={selectedPoint} />
+              ))}
+            </div>
+          </section>
         )}
       </section>
     </main>
