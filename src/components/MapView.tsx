@@ -10,6 +10,7 @@ type MapViewProps = {
   eliminated: CandidateStation[];
   constraints: Constraint[];
   currentPoint?: LngLat;
+  userLocation?: LngLat;
   draftConstraint?: Constraint;
   answerPreviewOverlays?: ConstraintOverlay[];
   showStations: boolean;
@@ -84,6 +85,15 @@ function hiderIcon(): L.DivIcon {
     html: `<div class="hider-location-marker"><span>H</span></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
+  });
+}
+
+function userLocationIcon(): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div class="user-location-marker"></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
   });
 }
 
@@ -230,6 +240,7 @@ export function MapView({
   eliminated,
   constraints,
   currentPoint,
+  userLocation,
   draftConstraint,
   answerPreviewOverlays = [],
   showStations,
@@ -253,6 +264,7 @@ export function MapView({
   const panBoundsRef = useRef<L.LatLngBounds | null>(null);
   const draftPointMarkerRef = useRef<L.Marker | null>(null);
   const currentPointMarkerRef = useRef<L.Marker | null>(null);
+  const userLocationMarkerRef = useRef<L.Marker | null>(null);
   const thermoFromMarkerRef = useRef<L.Marker | null>(null);
   const thermoToMarkerRef = useRef<L.Marker | null>(null);
   const onSelectPointRef = useRef(onSelectPoint);
@@ -369,6 +381,31 @@ export function MapView({
       map.panTo(latLng, { animate: true });
     }
   }, [currentPoint]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!userLocation) {
+      userLocationMarkerRef.current?.remove();
+      userLocationMarkerRef.current = null;
+      return;
+    }
+
+    const latLng: L.LatLngExpression = [userLocation.lat, userLocation.lng];
+    if (!userLocationMarkerRef.current) {
+      userLocationMarkerRef.current = L.marker(latLng, {
+        icon: userLocationIcon(),
+        interactive: false,
+        zIndexOffset: 1400,
+      }).addTo(map);
+    }
+    userLocationMarkerRef.current.setLatLng(latLng);
+
+    const panBounds = panBoundsRef.current;
+    if (panBounds?.contains(latLng) && !map.getBounds().pad(-0.2).contains(latLng)) {
+      map.panTo(latLng, { animate: true });
+    }
+  }, [userLocation]);
 
   useEffect(() => {
     const group = draftConstraintRef.current;
