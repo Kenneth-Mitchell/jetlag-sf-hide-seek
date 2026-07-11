@@ -20,10 +20,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES } from "./data/rules";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
 import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
-import { applyConstraints, canonicalAnswers, pointSatisfiesConstraint } from "./lib/constraints";
+import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./lib/districts";
+import { buildDraftConstraint } from "./lib/draftConstraint";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./lib/linearCategories";
+import { answerPastedQuestion } from "./lib/pastedQuestion";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { allPointCategories, getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
 import { allTransitLineOptions, transitLineStopPointsForQuestion } from "./lib/transit";
@@ -44,12 +46,6 @@ const MAX_MOBILE_MAP_HEIGHT = 88;
 
 type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
 
-type PastedQuestionAnswer = {
-  title: string;
-  answer: string;
-  detail: string;
-};
-
 const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
   { key: "stations", label: "Station circles" },
   { key: "currentQuestion", label: "Question preview" },
@@ -67,6 +63,10 @@ const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
   { value: "district", label: "Supervisorial district" },
   { value: "transit-line", label: "Transit line" },
 ];
+
+function questionLabel(kind: QuestionKind) {
+  return QUESTION_KINDS.find((item) => item.value === kind)?.label ?? kind;
+}
 
 function readSavedConstraints(): Constraint[] {
   try {
@@ -138,169 +138,14 @@ function clampMobileMapHeight(value: number) {
   return Math.min(MAX_MOBILE_MAP_HEIGHT, Math.max(MIN_MOBILE_MAP_HEIGHT, value));
 }
 
-function parseQuestionPoint(value: string): LngLat | undefined {
-  const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
-  if (!match) return undefined;
-  return { lat: Number(match[1]), lng: Number(match[2]) };
-}
-
-function normalizeQuestionText(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function categoryFromPhrase(value: string): CategoryKey | undefined {
-  const normalized = value.toLowerCase().replace(/^the\s+/, "").trim();
-  return (Object.keys(CATEGORY_LABELS) as CategoryKey[]).find((key) => {
-    const label = CATEGORY_LABELS[key].toLowerCase();
-    return normalized === label || normalized === label.replace(/^the\s+/, "");
-  });
-}
-
-function distanceForCategory(point: LngLat, category: CategoryKey): number | undefined {
-  if (isLinearCategory(category)) return distanceToLinearCategoryMiles(point, category);
-  const nearest = nearestFeature(point, getCategoryFeatures(category));
-  return nearest ? distanceMiles(point, lngLatFromFeature(nearest)) : undefined;
-}
-
-function answersForPointDistrict(point: LngLat): string | undefined {
-  return districtNumberAtPoint(point);
-}
-
-function answerPastedQuestion(text: string, hiderPoint: LngLat): PastedQuestionAnswer | undefined {
-  const question = normalizeQuestionText(text);
-  if (!question) return undefined;
-
-  const radiusMatch = question.match(/within\s+(\d+(?:\.\d+)?)\s+miles?\s+of\s+my\s+marked\s+point\s+\(([^)]+)\)/i);
-  if (radiusMatch) {
-    const point = parseQuestionPoint(radiusMatch[2]);
-    if (!point) return { title: "Radar / radius", answer: "Could not parse point", detail: "The pasted question has an unreadable coordinate." };
-    const miles = Number(radiusMatch[1]);
-    const actual = distanceMiles(hiderPoint, point);
-    return {
-      title: "Radar / radius",
-      answer: actual <= miles ? "Yes" : "No",
-      detail: `You are ${actual.toFixed(2)} mi from their point; cutoff is ${miles.toFixed(2)} mi.`,
-    };
-  }
-
-  const thermoMatch = question.match(/from\s+A\s+\(([^)]+)\)\s+to\s+B\s+\(([^)]+)\)/i);
-  if (thermoMatch) {
-    const from = parseQuestionPoint(thermoMatch[1]);
-    const to = parseQuestionPoint(thermoMatch[2]);
-    if (!from || !to) return { title: "Thermometer", answer: "Could not parse A/B", detail: "The pasted question has unreadable coordinates." };
-    const fromMiles = distanceMiles(hiderPoint, from);
-    const toMiles = distanceMiles(hiderPoint, to);
-    const answer = Math.abs(fromMiles - toMiles) <= 0.02 ? "Same" : toMiles < fromMiles ? "Warmer" : "Colder";
-    return {
-      title: "Thermometer",
-      answer,
-      detail: `A is ${fromMiles.toFixed(2)} mi away; B is ${toMiles.toFixed(2)} mi away.`,
-    };
-  }
-
-  const matchingMatch = question.match(/nearest\s+(.+?)\s+the\s+same\s+as\s+my\s+nearest\s+.+?\?\s+Mine\s+is\s+(.+?)\./i);
-  if (matchingMatch) {
-    const category = categoryFromPhrase(matchingMatch[1]);
-    if (!category) return { title: "Matching", answer: "Unknown category", detail: `Could not match "${matchingMatch[1]}" to a data category.` };
-    const seekerName = matchingMatch[2].trim().toLowerCase();
-    const hiderNearest = nearestFeature(hiderPoint, getCategoryFeatures(category));
-    if (!hiderNearest) return { title: "Matching", answer: "No data", detail: `No ${CATEGORY_LABELS[category]} data is available.` };
-    const same = hiderNearest.properties.name.toLowerCase() === seekerName;
-    return {
-      title: "Matching nearest POI",
-      answer: same ? "Yes" : "No",
-      detail: `Your nearest ${CATEGORY_LABELS[category].toLowerCase()} is ${hiderNearest.properties.name}.`,
-    };
-  }
-
-  const measuringMatch = question.match(/closer\s+to\s+or\s+farther\s+from\s+(?:the\s+)?(?:nearest\s+)?(.+?)\?\s+(?:My\s+distance\s+is|My\s+nearest\s+is\s+.+?\()\s*(\d+(?:\.\d+)?)\s+miles?/i);
-  if (measuringMatch) {
-    const category = categoryFromPhrase(measuringMatch[1]);
-    if (!category) return { title: "Measuring", answer: "Unknown category", detail: `Could not match "${measuringMatch[1]}" to a data category.` };
-    const reference = Number(measuringMatch[2]);
-    const actual = distanceForCategory(hiderPoint, category);
-    if (actual === undefined) return { title: "Measuring", answer: "No data", detail: `No ${CATEGORY_LABELS[category]} distance is available.` };
-    return {
-      title: "Measuring distance",
-      answer: actual <= reference ? "Closer" : "Farther",
-      detail: `You are ${actual.toFixed(2)} mi away; their reference is ${reference.toFixed(2)} mi.`,
-    };
-  }
-
-  const transitMatch = question.match(/does\s+the\s+(.+?)\s+stop\s+in\s+your\s+hiding\s+zone/i);
-  if (transitMatch) {
-    const line = transitMatch[1].trim();
-    const yes = pointSatisfiesConstraint(hiderPoint, {
-      id: "__pasted__",
-      label: "Transit line",
-      enabled: true,
-      kind: "transit-line",
-      line,
-      answer: "yes",
-    });
-    return {
-      title: "Transit line",
-      answer: yes ? "Yes" : "No",
-      detail: yes ? `${line} has a stop in a possible hiding station zone here.` : `${line} does not stop in a possible hiding station zone here.`,
-    };
-  }
-
-  const districtWithAnswerMatch = question.match(/same\s+San Francisco\s+Supervisorial\s+District.+?\bMine\s+is\s+D?(\d+)/i);
-  if (districtWithAnswerMatch) {
-    const seekerDistrict = districtWithAnswerMatch[1];
-    const hiderDistrict = answersForPointDistrict(hiderPoint);
-    if (!hiderDistrict) {
-      return { title: "Supervisorial district", answer: "Unknown", detail: "Your current map tap is outside the district layer." };
-    }
-    return {
-      title: "Supervisorial district",
-      answer: hiderDistrict === seekerDistrict ? "Yes" : "No",
-      detail: `You are in D${hiderDistrict}; seeker is in D${seekerDistrict}.`,
-    };
-  }
-
-  const tentacleWithOptionsMatch = question.match(/Of the\s+(.+?)\s+locations\s+within\s+(\d+(?:\.\d+)?)\s+miles?\s+of\s+me.+?\bOptions:\s+(.+?)(?:\.?$)/i);
-  if (tentacleWithOptionsMatch) {
-    const category = categoryFromPhrase(tentacleWithOptionsMatch[1]);
-    if (!category) return { title: "Tentacles", answer: "Unknown category", detail: `Could not match "${tentacleWithOptionsMatch[1]}" to a data category.` };
-    const optionNames = tentacleWithOptionsMatch[3]
-      .split(";")
-      .map((name) => name.trim().replace(/\.$/, ""))
-      .filter(Boolean);
-    const optionSet = new Set(optionNames.map((name) => name.toLowerCase()));
-    const features = getCategoryFeatures(category).filter((feature) => optionSet.has(feature.properties.name.toLowerCase()));
-    if (features.length === 0) return { title: "Tentacles", answer: "No options found", detail: "The pasted option names did not match frozen data." };
-    const nearest = features
-      .map((feature) => ({ feature, miles: distanceMiles(hiderPoint, lngLatFromFeature(feature)) }))
-      .sort((a, b) => a.miles - b.miles)[0];
-    return {
-      title: "Tentacles",
-      answer: nearest.feature.properties.name,
-      detail: `${nearest.miles.toFixed(2)} mi from your current map tap.`,
-    };
-  }
-
-  if (/same\s+San Francisco\s+Supervisorial\s+District/i.test(question)) {
-    return {
-      title: "Supervisorial district",
-      answer: "Need seeker district",
-      detail: "This pasted question does not include the seeker's district, so the exact yes/no answer cannot be derived from text alone.",
-    };
-  }
-
-  if (/which\s+one\s+are\s+you\s+nearest\s+to/i.test(question)) {
-    return {
-      title: "Tentacles",
-      answer: "Need option set",
-      detail: "This pasted question does not include the seeker's point or option list, so the exact answer set cannot be reconstructed.",
-    };
-  }
-
-  return {
-    title: "Unknown question",
-    answer: "Could not parse",
-    detail: "Paste one of the app's copyable questions, including coordinates/reference text.",
-  };
+function featuresWithinMiles(point: LngLat, features: PointFeature[], radiusMiles: number) {
+  return features
+    .map((feature) => ({
+      feature,
+      miles: distanceMiles(point, lngLatFromFeature(feature)),
+    }))
+    .filter((item) => item.miles <= radiusMiles)
+    .sort((a, b) => a.miles - b.miles);
 }
 
 export function App() {
@@ -387,25 +232,11 @@ export function App() {
   const dataFeatures = getCategoryFeatures(dataCategory);
   const nearestPoi = nearestFeature(liveSelectedPoint, categoryFeatures);
   const tentacleAnswerFeatures = useMemo(
-    () =>
-      categoryFeatures
-        .map((feature) => ({
-          feature,
-          miles: distanceMiles(liveSelectedPoint, lngLatFromFeature(feature)),
-        }))
-        .filter((item) => item.miles <= tentacleRadius)
-        .sort((a, b) => a.miles - b.miles),
+    () => featuresWithinMiles(liveSelectedPoint, categoryFeatures, tentacleRadius),
     [categoryFeatures, liveSelectedPoint, tentacleRadius],
   );
   const committedTentacleAnswerFeatures = useMemo(
-    () =>
-      categoryFeatures
-        .map((feature) => ({
-          feature,
-          miles: distanceMiles(selectedPoint, lngLatFromFeature(feature)),
-        }))
-        .filter((item) => item.miles <= tentacleRadius)
-        .sort((a, b) => a.miles - b.miles),
+    () => featuresWithinMiles(selectedPoint, categoryFeatures, tentacleRadius),
     [categoryFeatures, selectedPoint, tentacleRadius],
   );
   const answers = useMemo(() => canonicalAnswers(selectedPoint), [selectedPoint]);
@@ -500,12 +331,23 @@ export function App() {
   const draftConstraint = useMemo(
     () =>
       buildDraftConstraint({
+        kind: questionKind,
         id: editingConstraint?.id ?? "__draft__",
+        label: questionLabel(questionKind),
         enabled: editingConstraint?.enabled ?? true,
         color: draftColor,
         point: selectedPoint,
         from: thermoFrom,
         to: thermoTo,
+        category,
+        radiusMiles,
+        radiusAnswer,
+        measureAnswer,
+        yesNoAnswer,
+        thermoAnswer,
+        tentacleRadius,
+        selectedPoiId: questionKind === "tentacles" ? tentaclePoiIdFor(selectedPoint) : selectedPoiId,
+        transitLine,
       }),
     [
       category,
@@ -529,12 +371,23 @@ export function App() {
   const liveDraftConstraint = useMemo(
     () =>
       buildDraftConstraint({
+        kind: questionKind,
         id: editingConstraint?.id ?? "__draft__",
+        label: questionLabel(questionKind),
         enabled: editingConstraint?.enabled ?? true,
         color: draftColor,
         point: liveSelectedPoint,
         from: liveThermoFrom,
         to: liveThermoTo,
+        category,
+        radiusMiles,
+        radiusAnswer,
+        measureAnswer,
+        yesNoAnswer,
+        thermoAnswer,
+        tentacleRadius,
+        selectedPoiId: questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId,
+        transitLine,
       }),
     [
       category,
@@ -710,18 +563,18 @@ export function App() {
     else if (nearest) setSelectedPoiId(nearest.properties.id);
   }, [categoryFeatures, committedTentacleAnswerFeatures, questionKind, selectedPoint, selectedPoiId, tentacleRadius]);
 
+  const clearLocationPreviews = useCallback(() => {
+    setDraftPointPreview(null);
+    setThermoFromPreview(null);
+    setThermoToPreview(null);
+  }, []);
+
   function tentaclePoiIdFor(point: LngLat): string {
     const selectedFeature = categoryFeatures.find((feature) => feature.properties.id === selectedPoiId);
     if (selectedFeature && distanceMiles(point, lngLatFromFeature(selectedFeature)) <= tentacleRadius) {
       return selectedFeature.properties.id;
     }
-    const nearestInRange = categoryFeatures
-      .map((feature) => ({
-        feature,
-        miles: distanceMiles(point, lngLatFromFeature(feature)),
-      }))
-      .filter((item) => item.miles <= tentacleRadius)
-      .sort((a, b) => a.miles - b.miles)[0]?.feature;
+    const nearestInRange = featuresWithinMiles(point, categoryFeatures, tentacleRadius)[0]?.feature;
     return nearestInRange?.properties.id ?? nearestFeature(point, categoryFeatures)?.properties.id ?? "";
   }
 
@@ -734,66 +587,29 @@ export function App() {
     setMapLayers((current) => ({ ...current, [key]: !current[key] }));
   }
 
-  function buildDraftConstraint({
-    id,
-    enabled,
-    color,
-    point,
-    from,
-    to,
-  }: {
-    id: string;
-    enabled: boolean;
-    color: string;
-    point: LngLat;
-    from: LngLat;
-    to: LngLat;
-  }): Constraint | undefined {
-    if (questionKind === "none") return undefined;
-    const label = QUESTION_KINDS.find((kind) => kind.value === questionKind)?.label ?? questionKind;
-    const base = { id, label, enabled, color };
-    if (questionKind === "radius") {
-      return { ...base, kind: "radius", point, miles: radiusMiles, answer: radiusAnswer };
-    }
-    if (questionKind === "thermometer") {
-      return { ...base, kind: "thermometer", from, to, answer: thermoAnswer };
-    }
-    if (questionKind === "matching") {
-      return { ...base, kind: "matching", point, category, answer: yesNoAnswer };
-    }
-    if (questionKind === "measuring") {
-      return { ...base, kind: "measuring", point, category, answer: measureAnswer };
-    }
-    if (questionKind === "tentacles") {
-      return {
-        ...base,
-        kind: "tentacles",
-        point,
-        category,
-        selectedPoiId: tentaclePoiIdFor(point),
-        radiusMiles: tentacleRadius,
-      };
-    }
-    if (questionKind === "district") {
-      return { ...base, kind: "district", point, answer: yesNoAnswer };
-    }
-    return { ...base, kind: "transit-line", line: transitLine.trim(), answer: yesNoAnswer };
-  }
-
   function applyQuestionForm() {
     const existing = constraints.find((constraint) => constraint.id === editingConstraintId);
     const next = buildDraftConstraint({
+      kind: questionKind,
       id: existing?.id ?? makeId(),
+      label: questionLabel(questionKind),
       enabled: existing?.enabled ?? true,
       color: draftColor,
       point: liveSelectedPoint,
       from: liveThermoFrom,
       to: liveThermoTo,
+      category,
+      radiusMiles,
+      radiusAnswer,
+      measureAnswer,
+      yesNoAnswer,
+      thermoAnswer,
+      tentacleRadius,
+      selectedPoiId: questionKind === "tentacles" ? tentaclePoiIdFor(liveSelectedPoint) : selectedPoiId,
+      transitLine,
     });
     if (!next) return;
-    setDraftPointPreview(null);
-    setThermoFromPreview(null);
-    setThermoToPreview(null);
+    clearLocationPreviews();
     if (existing) {
       const nextConstraints = constraints.map((constraint) => (constraint.id === existing.id ? next : constraint));
       setConstraints(nextConstraints);
@@ -840,9 +656,7 @@ export function App() {
   }
 
   function changeQuestionKind(nextKind: QuestionKind) {
-    setDraftPointPreview(null);
-    setThermoFromPreview(null);
-    setThermoToPreview(null);
+    clearLocationPreviews();
     if (nextKind === "none") {
       setEditingConstraintId(null);
       setDraftColor(nextQuestionColor(constraints));
@@ -952,9 +766,7 @@ export function App() {
         lng: position.coords.longitude,
       };
       const inPlayableArea = Boolean(pointInFeatureCollection(nextPoint, snapshot.geometries.playableArea));
-      setDraftPointPreview(null);
-      setThermoFromPreview(null);
-      setThermoToPreview(null);
+      clearLocationPreviews();
       setSelectedPoint(nextPoint);
       const accuracy = Number.isFinite(position.coords.accuracy)
         ? `accuracy ${Math.round(position.coords.accuracy)} m`
@@ -1003,11 +815,9 @@ export function App() {
   }
 
   const handleMapPointSelect = useCallback((point: LngLat) => {
-    setDraftPointPreview(null);
-    setThermoFromPreview(null);
-    setThermoToPreview(null);
+    clearLocationPreviews();
     setSelectedPoint(point);
-  }, []);
+  }, [clearLocationPreviews]);
 
   const previewDraftPoint = useCallback((point: LngLat | null) => {
     setDraftPointPreview(point);
