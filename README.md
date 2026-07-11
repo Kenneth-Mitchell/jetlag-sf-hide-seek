@@ -18,9 +18,11 @@ Implemented:
 - DataSF supervisor district and trimmed playable-area geometry:
   - `https://data.sfgov.org/resource/f2zs-jevy.geojson`
   - `https://data.sfgov.org/resource/hcgx-vtsb.geojson`
-- DataSF coastline and park polygon geometry for geometry-backed measuring:
+- DataSF coastline, water body, and park polygon geometry for geometry-backed measuring:
   - `https://data.sfgov.org/resource/txuc-3kzm.geojson`
+  - `https://data.sfgov.org/resource/xgse-mjer.geojson`
   - `https://data.sfgov.org/resource/gtr9-ntp6.geojson`
+- Frozen sea-level/elevation samples from Open-Elevation for the Sea Level measuring question.
 - SFMTA GTFS per-route stop ingestion for transit-line checks near valid hiding stations.
 - Seeker constraints for radius, thermometer, nearest-POI matching, measuring, tentacles, supervisorial district, and transit line.
 - Vector geometry overlays on the map after applying questions, alongside in/out candidate station zones:
@@ -47,7 +49,7 @@ Implemented:
 Still incomplete or intentionally deferred:
 
 - Street/path: official street geometry source is identified, but the trace/photo-style question still needs UI and adjudication rules before bundling the large layer.
-- Sea-level and body-of-water: DataSF map-layer pages are identified, but their current geospatial export endpoints returned unusable/truncated GeoJSON during local testing, so they still need a reliable frozen source.
+- Sea-level uses a frozen sample grid rather than full contour geometry; refine later if contour-grade precision is required.
 - Station hiding zones are displayed as ¼-mile circles and filtered conservatively; clipping against the playable area is shown as boundary context but not yet persisted as clipped zone polygons.
 - Basemap tiles come from OpenStreetMap at runtime and are cached opportunistically after viewing; fully bundled offline tiles are not included yet.
 - Hosted deployment: `https://kenneth-mitchell.github.io/jetlag-sf-hide-seek/`

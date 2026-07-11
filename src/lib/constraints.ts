@@ -1,5 +1,6 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { distanceToArealCategoryMiles, isArealCategory, nearestArealCategoryWithDistance } from "./arealCategories";
+import { nearestSeaLevelWithDistance } from "./elevation";
 import { distanceMiles, distanceToFeatureMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, nearestOtherDistance, pointInFeatureCollection, sampleStationZone } from "./geo";
 import { distanceToLinearCategoryMiles, isLinearCategory, nearestLinearCategoryWithDistance } from "./linearCategories";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
@@ -45,6 +46,7 @@ function districtAt(point: LngLat): string | undefined {
 }
 
 function measuringDistance(point: LngLat, category: Extract<Constraint, { kind: "measuring" }>["category"]): number | undefined {
+  if (category === "seaLevel") return nearestSeaLevelWithDistance(point)?.miles;
   if (isLinearCategory(category)) return distanceToLinearCategoryMiles(point, category);
   if (isArealCategory(category)) return distanceToArealCategoryMiles(point, category);
   return nearestFeatureWithDistance(point, getCategoryFeatures(category))?.miles;
@@ -201,6 +203,19 @@ export function canonicalAnswers(point: LngLat) {
               ? {
                   name: nearest.name,
                   miles: nearest.miles,
+                }
+              : undefined,
+          ];
+        }
+        if (category === "seaLevel") {
+          const nearest = nearestSeaLevelWithDistance(point);
+          return [
+            category,
+            nearest
+              ? {
+                  name: nearest.name,
+                  miles: nearest.miles,
+                  feet: nearest.feet,
                 }
               : undefined,
           ];

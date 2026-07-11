@@ -24,6 +24,7 @@ import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays,
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./lib/districts";
 import { buildDraftConstraint } from "./lib/draftConstraint";
+import { nearestSeaLevelWithDistance } from "./lib/elevation";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./lib/linearCategories";
 import { answerPastedQuestion } from "./lib/pastedQuestion";
@@ -486,7 +487,10 @@ export function App() {
         }));
     }
     if (questionKind === "measuring") {
-      const distance = isLinearCategory(category)
+      const seaLevelDistance = category === "seaLevel" ? nearestSeaLevelWithDistance(liveSelectedPoint) : undefined;
+      const distance = category === "seaLevel"
+        ? seaLevelDistance?.miles
+        : isLinearCategory(category)
         ? distanceToLinearCategoryMiles(liveSelectedPoint, category)
         : isArealCategory(category)
           ? distanceToArealCategoryMiles(liveSelectedPoint, category)
@@ -495,6 +499,13 @@ export function App() {
           : undefined;
       const noun = CATEGORY_LABELS[category].toLowerCase();
       const target = isLinearCategory(category) ? `the ${noun}` : `nearest ${noun}`;
+      if (category === "seaLevel") {
+        const feet = seaLevelDistance?.feet;
+        return [
+          { label: "Closer", detail: feet === undefined ? "closer to sea level" : `< ${feet.toFixed(0)} ft from sea level` },
+          { label: "Farther", detail: feet === undefined ? "farther from sea level" : `> ${feet.toFixed(0)} ft from sea level` },
+        ];
+      }
       return [
         { label: "Closer", detail: distance === undefined ? `closer to ${target}` : `< ${distance.toFixed(2)} mi from ${target}` },
         { label: "Farther", detail: distance === undefined ? `farther from ${target}` : `> ${distance.toFixed(2)} mi from ${target}` },
@@ -1417,12 +1428,12 @@ export function App() {
               <AnswerRow label="Nearest valid station" value={answers.nearestValidStation?.feature.properties.name ?? "None"} />
               <AnswerRow label="Supervisorial district" value={answers.district ? `D${answers.district}` : "Unknown"} />
               {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => {
-                const answer = answers.nearest[key] as { name: string; miles: number } | undefined;
+                const answer = answers.nearest[key] as { name: string; miles: number; feet?: number } | undefined;
                 return (
                   <AnswerRow
                     key={key}
-                    label={key === "coastline" ? "Distance to Coastline" : `Nearest ${CATEGORY_LABELS[key]}`}
-                    value={answer ? `${answer.name} · ${answer.miles.toFixed(2)} mi` : "No data"}
+                    label={key === "coastline" || key === "seaLevel" ? `Distance to ${CATEGORY_LABELS[key]}` : `Nearest ${CATEGORY_LABELS[key]}`}
+                    value={answer ? `${answer.name} · ${key === "seaLevel" && answer.feet !== undefined ? `${answer.feet.toFixed(0)} ft` : `${answer.miles.toFixed(2)} mi`}` : "No data"}
                   />
                 );
               })}

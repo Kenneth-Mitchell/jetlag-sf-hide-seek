@@ -1,6 +1,7 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { pointSatisfiesConstraint } from "./constraints";
 import { districtNumberAtPoint } from "./districts";
+import { nearestSeaLevelWithDistance } from "./elevation";
 import { distanceMiles, lngLatFromFeature, nearestFeature } from "./geo";
 import { distanceToArealCategoryMiles, isArealCategory } from "./arealCategories";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./linearCategories";
@@ -32,6 +33,7 @@ function categoryFromPhrase(value: string): CategoryKey | undefined {
 }
 
 function distanceForCategory(point: LngLat, category: CategoryKey): number | undefined {
+  if (category === "seaLevel") return nearestSeaLevelWithDistance(point)?.miles;
   if (isLinearCategory(category)) return distanceToLinearCategoryMiles(point, category);
   if (isArealCategory(category)) return distanceToArealCategoryMiles(point, category);
   const nearest = nearestFeature(point, getCategoryFeatures(category));
@@ -82,6 +84,18 @@ export function answerPastedQuestion(text: string, hiderPoint: LngLat): PastedQu
       title: "Matching nearest POI",
       answer: same ? "Yes" : "No",
       detail: `Your nearest ${CATEGORY_LABELS[category].toLowerCase()} is ${hiderNearest.properties.name}.`,
+    };
+  }
+
+  const seaLevelMatch = question.match(/closer\s+to\s+or\s+farther\s+from\s+sea\s+level\?\s+My\s+elevation\s+is\s+(\d+(?:\.\d+)?)\s+feet?/i);
+  if (seaLevelMatch) {
+    const referenceFeet = Number(seaLevelMatch[1]);
+    const actual = nearestSeaLevelWithDistance(hiderPoint);
+    if (!actual) return { title: "Measuring", answer: "No data", detail: "No frozen elevation sample is available." };
+    return {
+      title: "Measuring distance",
+      answer: actual.feet <= referenceFeet ? "Closer" : "Farther",
+      detail: `You are ${actual.feet.toFixed(0)} ft from sea level; their reference is ${referenceFeet.toFixed(0)} ft.`,
     };
   }
 

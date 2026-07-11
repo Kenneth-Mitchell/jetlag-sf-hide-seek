@@ -1,6 +1,7 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { isArealCategory, nearestArealCategoryWithDistance } from "./arealCategories";
 import { districtNumberAtPoint } from "./districts";
+import { nearestSeaLevelWithDistance } from "./elevation";
 import { distanceMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance } from "./geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./linearCategories";
 import { getCategoryFeatures, snapshot } from "./snapshot";
@@ -45,6 +46,11 @@ export function formatQuestionDraft({
     return `Is your nearest ${categoryPhrase(category)} the same as my nearest ${categoryPhrase(category)}?${suffix}`;
   }
   if (kind === "measuring") {
+    if (category === "seaLevel") {
+      const elevation = nearestSeaLevelWithDistance(point);
+      const suffix = elevation ? ` My elevation is ${elevation.feet.toFixed(0)} feet from sea level.` : "";
+      return `Compared to me, are you closer to or farther from sea level?${suffix}`;
+    }
     if (isLinearCategory(category)) {
       const distance = distanceToLinearCategoryMiles(point, category);
       const suffix = distance === undefined ? "" : ` My distance is ${distance.toFixed(2)} miles.`;

@@ -5,6 +5,7 @@ import { ANSWER_COLORS, QUESTION_COLORS, answerColor, nextQuestionColor } from "
 import { buildConstraintOverlays, buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "../src/lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers, stationSurvivesConstraint } from "../src/lib/constraints";
 import { districtNumberFromFeature, supervisorDistrictFeatures } from "../src/lib/districts";
+import { nearestSeaLevelWithDistance } from "../src/lib/elevation";
 import { distanceMiles, lngLatFromFeature } from "../src/lib/geo";
 import { distanceToLinearCategoryMiles, linearCategoryLines } from "../src/lib/linearCategories";
 import { getCategoryFeatures, validStations, vanNessMarket } from "../src/lib/snapshot";
@@ -309,6 +310,18 @@ describe("constraint engine", () => {
     expect(vanNessDistance).toBeGreaterThan(0.02);
     expect(parkDistance).toBeLessThan(0.02);
     expect(nearest?.name).toMatch(/Glen Canyon|Park/i);
+  });
+
+  it("measures body-of-water polygons and frozen sea-level samples", () => {
+    const lakeMerced = { lat: 37.728, lng: -122.493 };
+    const twinPeaks = { lat: 37.7544, lng: -122.4477 };
+    const waterDistance = distanceToArealCategoryMiles(lakeMerced, "waterBodies");
+    const seaLevelAtMarket = nearestSeaLevelWithDistance(vanNessMarket);
+    const seaLevelAtTwinPeaks = nearestSeaLevelWithDistance(twinPeaks);
+
+    expect(waterDistance).toBeLessThan(0.08);
+    expect(seaLevelAtMarket?.feet).toBeGreaterThanOrEqual(0);
+    expect(seaLevelAtTwinPeaks?.feet).toBeGreaterThan(seaLevelAtMarket?.feet ?? 0);
   });
 
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {

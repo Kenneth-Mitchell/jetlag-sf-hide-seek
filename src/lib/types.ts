@@ -42,6 +42,8 @@ export type CategoryKey =
   | "foreignConsulates"
   | "farmersMarkets"
   | "parks"
+  | "waterBodies"
+  | "seaLevel"
   | "coastline";
 
 export type Snapshot = {
@@ -60,6 +62,7 @@ export type Snapshot = {
     playableArea: GeoJSON.FeatureCollection;
     supervisorDistricts: GeoJSON.FeatureCollection;
     coastline: GeoJSON.FeatureCollection;
+    waterBodies: GeoJSON.FeatureCollection;
     parkPolygons: GeoJSON.FeatureCollection;
   };
 };

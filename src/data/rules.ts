@@ -11,6 +11,8 @@ export const CATEGORY_LABELS = {
   foreignConsulates: "Foreign consulate",
   farmersMarkets: "Farmers market",
   parks: "Park",
+  waterBodies: "Body of water",
+  seaLevel: "Sea level",
   coastline: "Coastline",
 } as const;
 
@@ -39,6 +41,8 @@ export const MEASURING_CATEGORIES = [
   "foreignConsulates",
   "farmersMarkets",
   "parks",
+  "waterBodies",
+  "seaLevel",
   "coastline",
 ] as const;
 
@@ -63,14 +67,6 @@ export const DISABLED_RULE_NOTES = [
 ] as const;
 
 export const UNSUPPORTED_QUESTIONS = [
-  {
-    name: "Sea level",
-    reason: "Needs a frozen elevation surface or contour-derived elevation layer.",
-  },
-  {
-    name: "Body of water",
-    reason: "Needs a frozen waterbody polygon/line layer matching what counts as blue on the map.",
-  },
   {
     name: "Street or path",
     reason: "Official street/path source is identified, but the trace-style photo question still needs UI/adjudication rules before bundling the large geometry layer.",

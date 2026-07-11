@@ -11,6 +11,7 @@ const DEFAULT_WORKBOOK = "/Users/kenneth/Downloads/JLH&S Sheets San Francisco.xl
 const WORKBOOK_PATH = process.env.JETLAG_SF_XLSX ?? DEFAULT_WORKBOOK;
 const OUT_PATH = path.join(ROOT, "src", "data", "sf-snapshot.json");
 const CACHE_PATH = path.join(ROOT, "scripts", "build-data", "geocode-cache.json");
+const ELEVATION_CACHE_PATH = path.join(ROOT, "scripts", "build-data", "elevation-cache.json");
 const GTFS_CACHE_PATH = path.join(ROOT, "scripts", "build-data", "sfmta-gtfs.zip");
 const SFMTA_GTFS_URL =
   "https://data.sfgov.org/api/views/dni7-qpv3/files/efd513e7-b307-4515-9feb-88aa4106bb95";
@@ -150,6 +151,8 @@ const GEOMETRY_SOURCES = {
     "https://data.sfgov.org/resource/f2zs-jevy.geojson?$limit=5000",
   coastline:
     "https://data.sfgov.org/resource/txuc-3kzm.geojson?$limit=5000",
+  waterBodies:
+    "https://data.sfgov.org/resource/xgse-mjer.geojson?$limit=5000",
   parkPolygons:
     "https://data.sfgov.org/resource/gtr9-ntp6.geojson?$limit=5000",
 };
@@ -157,8 +160,6 @@ const GEOMETRY_SOURCES = {
 const DEFERRED_GEOMETRY_SOURCES = {
   streetPaths:
     "https://data.sfgov.org/resource/3psu-pn9h.geojson?$limit=50000",
-  waterBodies:
-    "https://data.sfgov.org/api/views/j829-i3ix",
   elevationContours:
     "https://data.sfgov.org/api/views/rnbg-2qxw",
 };
@@ -586,6 +587,18 @@ function compactGeometryFeature(feature, key, index) {
   });
 
   if (!simplified.geometry) return undefined;
+  if (key === "waterBodies") {
+    return {
+      type: "Feature",
+      geometry: simplified.geometry,
+      properties: {
+        id: `water:${feature.properties?.objectid ?? index}`,
+        name: feature.properties?.body_name ?? "Body of water",
+        bodyType: feature.properties?.body_type,
+        sourceId: feature.properties?.objectid,
+      },
+    };
+  }
   if (key === "parkPolygons") {
     return {
       type: "Feature",
@@ -602,7 +615,7 @@ function compactGeometryFeature(feature, key, index) {
 }
 
 function compactGeometryCollection(geojson, key) {
-  if (key !== "parkPolygons") return geojson;
+  if (key !== "parkPolygons" && key !== "waterBodies") return geojson;
   return {
     type: "FeatureCollection",
     features: (geojson.features ?? [])
@@ -611,9 +624,91 @@ function compactGeometryCollection(geojson, key) {
   };
 }
 
+function elevationCacheKey(lng, lat) {
+  return `${lng.toFixed(5)},${lat.toFixed(5)}`;
+}
+
+function pointInAnyPolygon(point, collection) {
+  return (collection.features ?? []).some((feature) =>
+    feature?.geometry && turf.booleanPointInPolygon(point, feature),
+  );
+}
+
+async function fetchElevationFeetBatch(points, cache) {
+  const missing = points.filter((point) => cache[elevationCacheKey(point.lng, point.lat)] === undefined);
+  if (missing.length > 0) {
+    const response = await fetch("https://api.open-elevation.com/api/v1/lookup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        locations: missing.map((point) => ({ latitude: point.lat, longitude: point.lng })),
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Elevation lookup failed: ${response.status} ${response.statusText}`);
+    }
+    const result = await response.json();
+    if (!Array.isArray(result.results) || result.results.length !== missing.length) {
+      throw new Error("Elevation lookup returned an unexpected result count.");
+    }
+    result.results.forEach((row, index) => {
+      const point = missing[index];
+      const meters = Number(row.elevation);
+      if (!Number.isFinite(meters)) throw new Error(`Elevation lookup returned no finite value for ${elevationCacheKey(point.lng, point.lat)}`);
+      cache[elevationCacheKey(point.lng, point.lat)] = Math.round(meters * 3.28084 * 10) / 10;
+    });
+  }
+  return points.map((point) => cache[elevationCacheKey(point.lng, point.lat)]);
+}
+
+async function buildElevationSamples(playableArea, validStationFeatures, cache) {
+  const [west, south, east, north] = turf.bbox(playableArea);
+  const step = 0.012;
+  const pointMap = new Map();
+  const addPoint = (lng, lat) => {
+    const point = { lng: Math.round(lng * 1e5) / 1e5, lat: Math.round(lat * 1e5) / 1e5 };
+    pointMap.set(elevationCacheKey(point.lng, point.lat), point);
+  };
+
+  for (const station of validStationFeatures) {
+    const [lng, lat] = station.geometry.coordinates;
+    addPoint(lng, lat);
+  }
+
+  for (let lat = south; lat <= north; lat += step) {
+    for (let lng = west; lng <= east; lng += step) {
+      const pt = turf.point([lng, lat]);
+      if (!pointInAnyPolygon(pt, playableArea)) continue;
+      addPoint(lng, lat);
+    }
+  }
+  const points = [...pointMap.values()];
+
+  const features = [];
+  const batchSize = 100;
+  for (let index = 0; index < points.length; index += batchSize) {
+    const chunk = points.slice(index, index + batchSize);
+    const elevations = await fetchElevationFeetBatch(chunk, cache);
+    chunk.forEach((point, offset) => {
+      features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [point.lng, point.lat] },
+        properties: {
+          id: `elevation:${elevationCacheKey(point.lng, point.lat)}`,
+          name: `${elevations[offset].toFixed(1)} ft`,
+          category: "elevation-sample",
+          elevationFeet: elevations[offset],
+        },
+      });
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
 async function main() {
   await fs.mkdir(path.dirname(OUT_PATH), { recursive: true });
   const cache = JSON.parse(await fs.readFile(CACHE_PATH, "utf8").catch(() => "{}"));
+  const elevationCache = JSON.parse(await fs.readFile(ELEVATION_CACHE_PATH, "utf8").catch(() => "{}"));
   const existingSnapshot = JSON.parse(await fs.readFile(OUT_PATH, "utf8").catch(() => "null"));
   const workbook = XLSX.readFile(WORKBOOK_PATH, { cellDates: true });
   const warnings = [];
@@ -658,6 +753,14 @@ async function main() {
     };
   }
 
+  const elevationSamples = await buildElevationSamples(geometries.playableArea, layers.validStations.features, elevationCache);
+  layers.elevationSamples = elevationSamples;
+  integrity.elevationSamples = {
+    source: "https://api.open-elevation.com/api/v1/lookup",
+    features: elevationSamples.features.length,
+    checksum: checksum(JSON.stringify(elevationSamples)),
+  };
+
   const snapshot = {
     schemaVersion: 1,
     generatedAt: `${SNAPSHOT_DATE}T00:00:00-07:00`,
@@ -672,7 +775,9 @@ async function main() {
       playableArea: GEOMETRY_SOURCES.playableArea,
       supervisorDistricts: GEOMETRY_SOURCES.supervisorDistricts,
       coastline: GEOMETRY_SOURCES.coastline,
+      waterBodies: GEOMETRY_SOURCES.waterBodies,
       parkPolygons: GEOMETRY_SOURCES.parkPolygons,
+      elevationSamples: "https://api.open-elevation.com/api/v1/lookup",
       deferredGeometry: DEFERRED_GEOMETRY_SOURCES,
     },
     warnings,
@@ -682,6 +787,7 @@ async function main() {
   };
 
   await fs.writeFile(CACHE_PATH, `${JSON.stringify(cache, null, 2)}\n`);
+  await fs.writeFile(ELEVATION_CACHE_PATH, `${JSON.stringify(elevationCache, null, 2)}\n`);
   await fs.writeFile(OUT_PATH, `${JSON.stringify(snapshot)}\n`);
 
   console.log(`Wrote ${path.relative(ROOT, OUT_PATH)}`);

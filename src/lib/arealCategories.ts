@@ -4,7 +4,7 @@ import { pointFeature } from "./geo";
 import { snapshot } from "./snapshot";
 import type { CategoryKey, LngLat } from "./types";
 
-export const AREAL_CATEGORIES = ["parks"] as const;
+export const AREAL_CATEGORIES = ["parks", "waterBodies"] as const;
 
 export type ArealCategoryKey = (typeof AREAL_CATEGORIES)[number];
 export type ArealCategoryFeature = GeoJSON.Feature<
@@ -25,6 +25,7 @@ export function isArealCategory(category: CategoryKey): category is ArealCategor
 
 function sourceCollection(category: ArealCategoryKey): GeoJSON.FeatureCollection {
   if (category === "parks") return snapshot.geometries.parkPolygons;
+  if (category === "waterBodies") return snapshot.geometries.waterBodies;
   return { type: "FeatureCollection", features: [] };
 }
 
