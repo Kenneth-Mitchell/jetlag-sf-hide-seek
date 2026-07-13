@@ -9,6 +9,7 @@ import type { CandidateStation, Constraint, LngLat } from "../lib/types";
 type MapViewProps = {
   candidates: CandidateStation[];
   eliminated: CandidateStation[];
+  constraints: Constraint[];
   currentPoint?: LngLat;
   draftConstraint?: Constraint;
   answerPreviewOverlays?: ConstraintOverlay[];
@@ -68,38 +69,78 @@ function overlayPathOptions(overlay: ConstraintOverlay, mode: ConstraintOverlay[
   };
 }
 
-function candidateZoneFeature(candidates: CandidateStation[]): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
-  const zones = candidates.map((station) => {
-    const [lng, lat] = station.geometry.coordinates;
-    return turf.circle([lng, lat], snapshot.hideRadiusMiles, { units: "miles", steps: 18 });
-  });
-  if (zones.length === 0) return undefined;
-  const merged = turf.union(turf.featureCollection(zones));
+type AreaFeature = GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
+
+function mergeAreaFeatures(features: AreaFeature[]): AreaFeature | undefined {
+  if (features.length === 0) return undefined;
+  if (features.length === 1) return features[0];
+  const merged = turf.union(turf.featureCollection(features));
   return merged && (merged.geometry.type === "Polygon" || merged.geometry.type === "MultiPolygon")
-    ? (merged as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>)
+    ? (merged as AreaFeature)
     : undefined;
 }
 
 let cachedPlayableAreaFeature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined;
 
-function playableAreaFeature(): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
+function playableAreaFeature(): AreaFeature | undefined {
   if (cachedPlayableAreaFeature) return cachedPlayableAreaFeature;
-  const features = snapshot.geometries.playableArea.features as Array<GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>>;
-  const merged = turf.union(turf.featureCollection(features));
-  if (merged && (merged.geometry.type === "Polygon" || merged.geometry.type === "MultiPolygon")) {
-    cachedPlayableAreaFeature = merged as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
-  }
+  const features = snapshot.geometries.playableArea.features as AreaFeature[];
+  cachedPlayableAreaFeature = mergeAreaFeatures(features);
   return cachedPlayableAreaFeature;
 }
 
-function excludedZoneFeature(candidates: CandidateStation[]): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
+function overlayAreaFeature(overlay: ConstraintOverlay): AreaFeature | undefined {
+  if (overlay.kind === "circle") {
+    return turf.circle([overlay.center.lng, overlay.center.lat], overlay.radiusMiles, { units: "miles", steps: 48 }) as AreaFeature;
+  }
+  if (overlay.kind === "polygon") return overlay.feature as AreaFeature;
+  return undefined;
+}
+
+function intersectPlayable(feature: AreaFeature): AreaFeature | undefined {
   const playable = playableAreaFeature();
   if (!playable) return undefined;
-  const remaining = candidateZoneFeature(candidates);
-  if (!remaining) return playable;
-  const excluded = turf.difference(turf.featureCollection([playable, remaining]));
+  const intersection = turf.intersect(turf.featureCollection([playable, feature]));
+  return intersection && (intersection.geometry.type === "Polygon" || intersection.geometry.type === "MultiPolygon")
+    ? (intersection as AreaFeature)
+    : undefined;
+}
+
+function constraintAnswerRegion(constraint: Constraint): AreaFeature | undefined {
+  if (!constraint.enabled) return undefined;
+  const playable = playableAreaFeature();
+  if (!playable) return undefined;
+
+  const answerOverlays = buildConstraintOverlays([constraint])
+    .filter((overlay) => overlay.mode !== "reference")
+    .map((overlay) => ({ mode: overlay.mode, feature: overlayAreaFeature(overlay) }))
+    .filter((item): item is { mode: "keep" | "exclude"; feature: AreaFeature } => Boolean(item.feature));
+
+  const keepFeature = mergeAreaFeatures(answerOverlays.filter((item) => item.mode === "keep").map((item) => item.feature));
+  const excludeFeature = mergeAreaFeatures(answerOverlays.filter((item) => item.mode === "exclude").map((item) => item.feature));
+  let answerRegion = keepFeature ? intersectPlayable(keepFeature) : playable;
+  if (!answerRegion) return undefined;
+  if (excludeFeature) {
+    const difference = turf.difference(turf.featureCollection([answerRegion, excludeFeature]));
+    answerRegion = difference && (difference.geometry.type === "Polygon" || difference.geometry.type === "MultiPolygon")
+      ? (difference as AreaFeature)
+      : undefined;
+  }
+  return answerRegion ? intersectPlayable(answerRegion) : undefined;
+}
+
+function askedQuestionRegion(constraints: Constraint[]): AreaFeature | undefined {
+  return mergeAreaFeatures(constraints.map(constraintAnswerRegion).filter((feature): feature is AreaFeature => Boolean(feature)));
+}
+
+function excludedQuestionRegion(constraints: Constraint[]): AreaFeature | undefined {
+  if (constraints.filter((constraint) => constraint.enabled).length === 0) return undefined;
+  const playable = playableAreaFeature();
+  const allowed = askedQuestionRegion(constraints);
+  if (!playable || !allowed) return undefined;
+  const excluded = turf.difference(turf.featureCollection([playable, allowed]));
   return excluded && (excluded.geometry.type === "Polygon" || excluded.geometry.type === "MultiPolygon")
-    ? (excluded as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>)
+    ? (excluded as AreaFeature)
     : undefined;
 }
 
@@ -285,6 +326,7 @@ function attachManualDrag(
 export function MapView({
   candidates,
   eliminated,
+  constraints,
   currentPoint,
   draftConstraint,
   answerPreviewOverlays = [],
@@ -376,7 +418,7 @@ export function MapView({
     if (!group) return;
     group.clearLayers();
     if (!showAppliedQuestions) return;
-    const feature = excludedZoneFeature(candidates);
+    const feature = excludedQuestionRegion(constraints);
     if (!feature) return;
     L.geoJSON(feature, {
       interactive: false,
@@ -387,7 +429,7 @@ export function MapView({
         fillOpacity: 0.2,
       },
     }).addTo(group);
-  }, [candidates, showAppliedQuestions]);
+  }, [constraints, showAppliedQuestions]);
 
   useEffect(() => {
     const map = mapRef.current;

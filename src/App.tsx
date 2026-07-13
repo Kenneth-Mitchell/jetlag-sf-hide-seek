@@ -875,6 +875,7 @@ export function App() {
         <MapView
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
+          constraints={constraints}
           currentPoint={showSelectedPointMarker ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
           answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
