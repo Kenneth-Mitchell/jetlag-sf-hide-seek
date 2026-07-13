@@ -403,13 +403,14 @@ export function MapView({
       noWrap: true,
       attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
-    const playableLayer = L.geoJSON(snapshot.geometries.playableArea, {
+    const playableLayer = L.geoJSON(playableAreaFeature() ?? snapshot.geometries.playableArea, {
       interactive: false,
       style: {
-        color: "#111827",
-        weight: 1,
+        color: "#344543",
+        opacity: 0.45,
+        weight: 0.9,
         fillColor: "#f8faf7",
-        fillOpacity: 0.08,
+        fillOpacity: 0.04,
       },
     }).addTo(map);
     const gameBounds = playableLayer.getBounds();
