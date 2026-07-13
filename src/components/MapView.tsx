@@ -144,6 +144,20 @@ function excludedQuestionRegion(constraints: Constraint[]): AreaFeature | undefi
     : undefined;
 }
 
+function constraintAnswerRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
+  const feature = constraintAnswerRegion(constraint);
+  return feature
+    ? [{
+        kind: "polygon" as const,
+        feature,
+        mode: "keep" as const,
+        color: constraint.color,
+        fillOpacity: 0.24,
+        weight: 2.8,
+      }]
+    : [];
+}
+
 function handleIcon(label: string, color: string): L.DivIcon {
   const content = label ? `<span>${label}</span>` : "";
   const dotClass = label ? "" : " drag-handle-dot";
@@ -481,7 +495,7 @@ export function MapView({
         : voronoiPreview.length > 0
           ? voronoiPreview
           : showCurrentQuestion
-            ? buildConstraintOverlays([previewConstraint])
+            ? constraintAnswerRegionOverlay(previewConstraint)
             : [];
     for (const overlay of overlays) {
       const mode = overlay.mode === "reference" ? "reference" : overlay.mode;
