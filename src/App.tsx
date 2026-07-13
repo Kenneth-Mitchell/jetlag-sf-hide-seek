@@ -10,7 +10,6 @@ import {
   Maximize2,
   Minimize2,
   Pencil,
-  RotateCcw,
   Settings,
   Share2,
   Trash2,
@@ -642,6 +641,15 @@ export function App() {
     }
   }
 
+  function clearQuestions() {
+    if (constraints.length === 0) return;
+    const confirmed = window.confirm(`Clear all ${constraints.length} applied question${constraints.length === 1 ? "" : "s"}?`);
+    if (!confirmed) return;
+    setConstraints([]);
+    setEditingConstraintId(null);
+    setDraftColor(nextQuestionColor([]));
+  }
+
   function updateConstraintColor(id: string, color: string) {
     setConstraints((current) =>
       current.map((constraint) => (constraint.id === id ? { ...constraint, color } : constraint)),
@@ -1200,15 +1208,13 @@ export function App() {
                   </button>
                   <button
                     type="button"
-                    title="Clear questions"
+                    title="Clear all questions"
+                    aria-label="Clear all questions"
                     className="square-icon-button"
-                    onClick={() => {
-                      setConstraints([]);
-                      setEditingConstraintId(null);
-                      setDraftColor(nextQuestionColor([]));
-                    }}
+                    onClick={clearQuestions}
+                    disabled={constraints.length === 0}
                   >
-                    <RotateCcw size={17} />
+                    <Trash2 size={17} />
                   </button>
                 </div>
               </div>
