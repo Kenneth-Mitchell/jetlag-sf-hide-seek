@@ -31,6 +31,7 @@ type ThermometerDrag = {
 
 const STATION_CENTER_MIN_ZOOM = 14;
 const STATION_ZONE_STEPS = 32;
+const GEOMETRY_CACHE_LIMIT = 240;
 
 function overlayStyle(mode: ConstraintOverlay["mode"], color = "#7c3aed"): L.PathOptions {
   if (mode === "reference") {
@@ -91,6 +92,9 @@ function intersectAreaFeatures(features: AreaFeature[]): AreaFeature | undefined
 }
 
 let cachedPlayableAreaFeature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined;
+const constraintAnswerRegionCache = new Map<string, AreaFeature | null>();
+const stackAnswerRegionCache = new Map<string, AreaFeature | null>();
+const stackExcludedRegionCache = new Map<string, AreaFeature | null>();
 
 function playableAreaFeature(): AreaFeature | undefined {
   if (cachedPlayableAreaFeature) return cachedPlayableAreaFeature;
@@ -116,7 +120,23 @@ function intersectPlayable(feature: AreaFeature): AreaFeature | undefined {
     : undefined;
 }
 
-function constraintAnswerRegion(constraint: Constraint): AreaFeature | undefined {
+function cachedAreaFeature(map: Map<string, AreaFeature | null>, key: string, build: () => AreaFeature | undefined): AreaFeature | undefined {
+  if (map.has(key)) return map.get(key) ?? undefined;
+  const feature = build();
+  if (map.size >= GEOMETRY_CACHE_LIMIT) map.clear();
+  map.set(key, feature ?? null);
+  return feature;
+}
+
+function constraintGeometryKey(constraint: Constraint): string {
+  return JSON.stringify(constraint, (key, value) => (key === "color" || key === "label" ? undefined : value));
+}
+
+function enabledConstraintKeys(constraints: Constraint[]): string[] {
+  return constraints.filter((constraint) => constraint.enabled).map(constraintGeometryKey);
+}
+
+function buildConstraintAnswerRegion(constraint: Constraint): AreaFeature | undefined {
   if (!constraint.enabled) return undefined;
   const playable = playableAreaFeature();
   if (!playable) return undefined;
@@ -139,19 +159,32 @@ function constraintAnswerRegion(constraint: Constraint): AreaFeature | undefined
   return answerRegion ? intersectPlayable(answerRegion) : undefined;
 }
 
+function constraintAnswerRegion(constraint: Constraint): AreaFeature | undefined {
+  if (!constraint.enabled) return undefined;
+  return cachedAreaFeature(constraintAnswerRegionCache, constraintGeometryKey(constraint), () => buildConstraintAnswerRegion(constraint));
+}
+
 function askedQuestionRegion(constraints: Constraint[]): AreaFeature | undefined {
-  return intersectAreaFeatures(constraints.map(constraintAnswerRegion).filter((feature): feature is AreaFeature => Boolean(feature)));
+  const keys = enabledConstraintKeys(constraints);
+  if (keys.length === 0) return undefined;
+  return cachedAreaFeature(stackAnswerRegionCache, keys.join("|"), () =>
+    intersectAreaFeatures(constraints.map(constraintAnswerRegion).filter((feature): feature is AreaFeature => Boolean(feature))),
+  );
 }
 
 function excludedQuestionRegion(constraints: Constraint[]): AreaFeature | undefined {
-  if (constraints.filter((constraint) => constraint.enabled).length === 0) return undefined;
+  const keys = enabledConstraintKeys(constraints);
+  if (keys.length === 0) return undefined;
   const playable = playableAreaFeature();
-  const allowed = askedQuestionRegion(constraints);
-  if (!playable || !allowed) return undefined;
-  const excluded = turf.difference(turf.featureCollection([playable, allowed]));
-  return excluded && (excluded.geometry.type === "Polygon" || excluded.geometry.type === "MultiPolygon")
-    ? (excluded as AreaFeature)
-    : undefined;
+  if (!playable) return undefined;
+  return cachedAreaFeature(stackExcludedRegionCache, keys.join("|"), () => {
+    const allowed = askedQuestionRegion(constraints);
+    if (!allowed) return undefined;
+    const excluded = turf.difference(turf.featureCollection([playable, allowed]));
+    return excluded && (excluded.geometry.type === "Polygon" || excluded.geometry.type === "MultiPolygon")
+      ? (excluded as AreaFeature)
+      : undefined;
+  });
 }
 
 function constraintEliminatedRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
@@ -430,10 +463,15 @@ export function MapView({
   const [draftDragPoint, setDraftDragPoint] = useState<LngLat | null>(null);
   const [thermometerDrag, setThermometerDrag] = useState<ThermometerDrag | null>(null);
   const [showStationCenters, setShowStationCenters] = useState(false);
+  const enabledStackKey = useMemo(() => enabledConstraintKeys(constraints).join("|"), [constraints]);
+  const allowedRegion = useMemo(() => askedQuestionRegion(constraints), [enabledStackKey]);
+  const appliedExcludedRegion = useMemo(
+    () => (showAppliedQuestions ? excludedQuestionRegion(constraints) : undefined),
+    [enabledStackKey, showAppliedQuestions],
+  );
   const visibleStations = useMemo(() => {
-    const allowedRegion = askedQuestionRegion(constraints);
     return validStations.filter((station) => stationZoneIntersectsRegion(station, allowedRegion));
-  }, [constraints]);
+  }, [allowedRegion]);
 
   useEffect(() => {
     onSelectPointRef.current = onSelectPoint;
@@ -488,7 +526,7 @@ export function MapView({
     if (!group) return;
     group.clearLayers();
     if (!showAppliedQuestions) return;
-    const feature = excludedQuestionRegion(constraints);
+    const feature = appliedExcludedRegion;
     if (!feature) return;
     L.geoJSON(feature, {
       interactive: false,
@@ -499,7 +537,7 @@ export function MapView({
         fillOpacity: 0.2,
       },
     }).addTo(group);
-  }, [constraints, showAppliedQuestions]);
+  }, [appliedExcludedRegion, showAppliedQuestions]);
 
   useEffect(() => {
     const map = mapRef.current;
