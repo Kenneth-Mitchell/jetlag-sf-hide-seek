@@ -20,7 +20,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { CATEGORY_LABELS, MATCHING_CATEGORIES, MEASURING_CATEGORIES, TENTACLE_CATEGORIES, UNSUPPORTED_QUESTIONS } from "./data/rules";
 import { distanceToArealCategoryMiles, isArealCategory } from "./lib/arealCategories";
 import { answerColor, constraintColor, nextQuestionColor } from "./lib/colors";
-import { buildDistrictAnswerPreviewOverlays, buildMatchingAnswerPreviewOverlays, buildTentacleAnswerPreviewOverlays } from "./lib/constraintOverlays";
 import { applyConstraints, canonicalAnswers } from "./lib/constraints";
 import { districtDetailFromFeature, districtLabelFromFeature, districtNumberAtPoint, districtNumberFromFeature, supervisorDistrictFeatures } from "./lib/districts";
 import { buildDraftConstraint } from "./lib/draftConstraint";
@@ -47,13 +46,12 @@ const DEFAULT_MOBILE_MAP_HEIGHT = 64;
 const MIN_MOBILE_MAP_HEIGHT = 34;
 const MAX_MOBILE_MAP_HEIGHT = 88;
 
-type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
+type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions";
 
 const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
   { key: "stations", label: "Station circles" },
   { key: "currentQuestion", label: "Question preview" },
   { key: "appliedQuestions", label: "Eliminated area" },
-  { key: "answerRegions", label: "Answer regions" },
 ];
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
@@ -175,7 +173,6 @@ export function App() {
     stations: true,
     currentQuestion: true,
     appliedQuestions: true,
-    answerRegions: true,
   });
   const [stationColor, setStationColor] = useState(readSavedStationColor);
   const [mapFocus, setMapFocus] = useState(false);
@@ -415,39 +412,6 @@ export function App() {
         : constraints,
     [constraints, liveDraftConstraint, editingConstraint],
   );
-  const answerPreviewOverlays = useMemo(() => {
-    if (!liveDraftConstraint) return [];
-    if (questionKind === "matching" && liveDraftConstraint.kind === "matching") {
-      return buildMatchingAnswerPreviewOverlays(
-        liveDraftConstraint,
-        matchingAnswerLegend.map(({ color, feature, selected }) => ({
-          color,
-          featureId: feature.properties.id,
-          selected,
-        })),
-      );
-    }
-    if (questionKind === "tentacles" && liveDraftConstraint.kind === "tentacles") {
-      return buildTentacleAnswerPreviewOverlays(
-        liveDraftConstraint,
-        tentacleAnswerLegend.map(({ color, feature, selected }) => ({
-          color,
-          featureId: feature.properties.id,
-          selected,
-        })),
-      );
-    }
-    if (questionKind === "district" && liveDraftConstraint.kind === "district") {
-      return buildDistrictAnswerPreviewOverlays(
-        districtAnswerLegend.map(({ color, district, selected }) => ({
-          color,
-          district,
-          selected,
-        })),
-      );
-    }
-    return [];
-  }, [districtAnswerLegend, liveDraftConstraint, matchingAnswerLegend, questionKind, tentacleAnswerLegend]);
   const candidates = useMemo(() => applyConstraints(previewConstraints), [previewConstraints]);
   const answerOptions = useMemo<AnswerOption[]>(() => {
     if (questionKind === "none") return [];
@@ -890,11 +854,9 @@ export function App() {
           constraints={constraints}
           currentPoint={showSelectedPointMarker ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
-          answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
           showStations={mapLayers.stations}
           showCurrentQuestion={mapLayers.currentQuestion}
           showAppliedQuestions={mapLayers.appliedQuestions}
-          showAnswerRegions={mapLayers.answerRegions}
           stationColor={stationColor}
           onSelectPoint={handleMapPointSelect}
           onCurrentPointChange={moveDraftPoint}

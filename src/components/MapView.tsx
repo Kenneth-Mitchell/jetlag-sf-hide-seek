@@ -1,7 +1,7 @@
 import L from "leaflet";
 import * as turf from "@turf/turf";
 import { useEffect, useRef, useState } from "react";
-import { buildConstraintOverlays, buildVoronoiPreviewOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
+import { buildConstraintOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
 import { distanceMiles, milesToMeters } from "../lib/geo";
 import { snapshot, vanNessMarket } from "../lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../lib/types";
@@ -12,11 +12,9 @@ type MapViewProps = {
   constraints: Constraint[];
   currentPoint?: LngLat;
   draftConstraint?: Constraint;
-  answerPreviewOverlays?: ConstraintOverlay[];
   showStations: boolean;
   showCurrentQuestion: boolean;
   showAppliedQuestions: boolean;
-  showAnswerRegions: boolean;
   stationColor: string;
   onSelectPoint: (point: LngLat) => void;
   onCurrentPointChange?: (point: LngLat) => void;
@@ -155,20 +153,6 @@ function excludedQuestionRegion(constraints: Constraint[]): AreaFeature | undefi
     : undefined;
 }
 
-function constraintAnswerRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
-  const feature = constraintAnswerRegion(constraint);
-  return feature
-    ? [{
-        kind: "polygon" as const,
-        feature,
-        mode: "keep" as const,
-        color: constraint.color,
-        fillOpacity: 0.24,
-        weight: 2.8,
-      }]
-    : [];
-}
-
 function constraintEliminatedRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
   const feature = excludedQuestionRegion([constraint]);
   return feature
@@ -184,10 +168,7 @@ function constraintEliminatedRegionOverlay(constraint: Constraint): ConstraintOv
 }
 
 function constraintPreviewRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
-  if (constraint.kind === "matching" || constraint.kind === "district" || constraint.kind === "transit-line") {
-    return constraintEliminatedRegionOverlay(constraint);
-  }
-  return constraintAnswerRegionOverlay(constraint);
+  return constraintEliminatedRegionOverlay(constraint);
 }
 
 function handleIcon(label: string, color: string): L.DivIcon {
@@ -375,11 +356,9 @@ export function MapView({
   constraints,
   currentPoint,
   draftConstraint,
-  answerPreviewOverlays = [],
   showStations,
   showCurrentQuestion,
   showAppliedQuestions,
-  showAnswerRegions,
   stationColor,
   onSelectPoint,
   onCurrentPointChange,
@@ -516,19 +495,9 @@ export function MapView({
     const group = draftConstraintRef.current;
     if (!group) return;
     group.clearLayers();
-    if (!draftConstraint) return;
-    if (!showCurrentQuestion && !showAnswerRegions) return;
+    if (!draftConstraint || !showCurrentQuestion) return;
     const previewConstraint = withDraftDragPreview(draftConstraint, draftDragPoint, thermometerDrag);
-    const activeAnswerOverlays = showAnswerRegions ? answerPreviewOverlays : [];
-    const voronoiPreview = draftDragPoint && activeAnswerOverlays.length === 0 ? buildVoronoiPreviewOverlays(previewConstraint) : [];
-    const overlays =
-      activeAnswerOverlays.length > 0
-        ? activeAnswerOverlays
-        : voronoiPreview.length > 0
-          ? voronoiPreview
-          : showCurrentQuestion
-            ? constraintPreviewRegionOverlay(previewConstraint)
-            : [];
+    const overlays = constraintPreviewRegionOverlay(previewConstraint);
     for (const overlay of overlays) {
       const mode = overlay.mode === "reference" ? "reference" : overlay.mode;
       if (overlay.kind === "circle") {
@@ -557,7 +526,7 @@ export function MapView({
         ).addTo(group);
       }
     }
-  }, [answerPreviewOverlays, draftConstraint, draftDragPoint, showAnswerRegions, showCurrentQuestion, thermometerDrag]);
+  }, [draftConstraint, draftDragPoint, showCurrentQuestion, thermometerDrag]);
 
   useEffect(() => {
     const map = mapRef.current;
