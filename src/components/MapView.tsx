@@ -80,6 +80,17 @@ function mergeAreaFeatures(features: AreaFeature[]): AreaFeature | undefined {
     : undefined;
 }
 
+function intersectAreaFeatures(features: AreaFeature[]): AreaFeature | undefined {
+  if (features.length === 0) return undefined;
+  let intersection = features[0];
+  for (const feature of features.slice(1)) {
+    const next = turf.intersect(turf.featureCollection([intersection, feature]));
+    if (!next || (next.geometry.type !== "Polygon" && next.geometry.type !== "MultiPolygon")) return undefined;
+    intersection = next as AreaFeature;
+  }
+  return intersection;
+}
+
 let cachedPlayableAreaFeature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined;
 
 function playableAreaFeature(): AreaFeature | undefined {
@@ -130,7 +141,7 @@ function constraintAnswerRegion(constraint: Constraint): AreaFeature | undefined
 }
 
 function askedQuestionRegion(constraints: Constraint[]): AreaFeature | undefined {
-  return mergeAreaFeatures(constraints.map(constraintAnswerRegion).filter((feature): feature is AreaFeature => Boolean(feature)));
+  return intersectAreaFeatures(constraints.map(constraintAnswerRegion).filter((feature): feature is AreaFeature => Boolean(feature)));
 }
 
 function excludedQuestionRegion(constraints: Constraint[]): AreaFeature | undefined {
