@@ -1,4 +1,5 @@
 import L from "leaflet";
+import * as turf from "@turf/turf";
 import { useEffect, useRef, useState } from "react";
 import { buildConstraintOverlays, buildVoronoiPreviewOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
 import { distanceMiles, milesToMeters } from "../lib/geo";
@@ -16,6 +17,7 @@ type MapViewProps = {
   showCurrentQuestion: boolean;
   showAppliedQuestions: boolean;
   showAnswerRegions: boolean;
+  showFinalRegion: boolean;
   stationColor: string;
   onSelectPoint: (point: LngLat) => void;
   onCurrentPointChange?: (point: LngLat) => void;
@@ -58,14 +60,39 @@ function overlayStyle(mode: ConstraintOverlay["mode"], color = "#7c3aed"): L.Pat
   };
 }
 
-function overlayPathOptions(overlay: ConstraintOverlay, mode: ConstraintOverlay["mode"] = overlay.mode): L.PathOptions {
+function overlayPathOptions(
+  overlay: ConstraintOverlay,
+  mode: ConstraintOverlay["mode"] = overlay.mode,
+  context: "default" | "applied" = "default",
+): L.PathOptions {
   const style = overlayStyle(mode, overlay.color);
+  if (context === "applied" && mode === "keep") {
+    return {
+      ...style,
+      color: "#344543",
+      dashArray: overlay.dashArray ?? "5 6",
+      fillOpacity: 0,
+      weight: overlay.weight ?? 1.8,
+    };
+  }
   return {
     ...style,
     dashArray: overlay.dashArray ?? style.dashArray,
     fillOpacity: overlay.fillOpacity ?? style.fillOpacity,
     weight: overlay.weight ?? style.weight,
   };
+}
+
+function candidateZoneFeature(candidates: CandidateStation[]): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
+  const zones = candidates.map((station) => {
+    const [lng, lat] = station.geometry.coordinates;
+    return turf.circle([lng, lat], snapshot.hideRadiusMiles, { units: "miles", steps: 18 });
+  });
+  if (zones.length === 0) return undefined;
+  const merged = turf.union(turf.featureCollection(zones));
+  return merged && (merged.geometry.type === "Polygon" || merged.geometry.type === "MultiPolygon")
+    ? (merged as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>)
+    : undefined;
 }
 
 function handleIcon(label: string, color: string): L.DivIcon {
@@ -258,6 +285,7 @@ export function MapView({
   showCurrentQuestion,
   showAppliedQuestions,
   showAnswerRegions,
+  showFinalRegion,
   stationColor,
   onSelectPoint,
   onCurrentPointChange,
@@ -272,6 +300,7 @@ export function MapView({
   const mapRef = useRef<L.Map | null>(null);
   const appliedConstraintRef = useRef<L.LayerGroup | null>(null);
   const draftConstraintRef = useRef<L.LayerGroup | null>(null);
+  const finalRegionRef = useRef<L.LayerGroup | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
   const panBoundsRef = useRef<L.LatLngBounds | null>(null);
   const draftPointMarkerRef = useRef<L.Marker | null>(null);
@@ -319,8 +348,8 @@ export function MapView({
     map.setMaxBounds(panBounds);
     clampMapMinZoom(map, viewBounds);
     map.on("resize", () => clampMapMinZoom(map, viewBounds));
-    const layers = L.layerGroup().addTo(map);
-    layersRef.current = layers;
+    finalRegionRef.current = L.layerGroup().addTo(map);
+    layersRef.current = L.layerGroup().addTo(map);
     appliedConstraintRef.current = L.layerGroup().addTo(map);
     draftConstraintRef.current = L.layerGroup().addTo(map);
     map.on("click", (event) => onSelectPointRef.current({ lat: event.latlng.lat, lng: event.latlng.lng }));
@@ -346,7 +375,7 @@ export function MapView({
     for (const overlay of buildConstraintOverlays(constraints)) {
       if (overlay.kind === "circle") {
         L.circle([overlay.center.lat, overlay.center.lng], {
-          ...overlayPathOptions(overlay),
+          ...overlayPathOptions(overlay, overlay.mode, "applied"),
           radius: milesToMeters(overlay.radiusMiles),
           interactive: false,
         }).addTo(group);
@@ -354,7 +383,7 @@ export function MapView({
         L.geoJSON(overlay.feature, {
           interactive: false,
           style: {
-            ...overlayPathOptions(overlay),
+            ...overlayPathOptions(overlay, overlay.mode, "applied"),
             stroke: overlay.stroke ?? true,
           },
         }).addTo(group);
@@ -362,13 +391,31 @@ export function MapView({
         L.polyline(
           overlay.coordinates.map((coordinate) => [coordinate.lat, coordinate.lng]),
           {
-            ...overlayPathOptions(overlay),
+            ...overlayPathOptions(overlay, overlay.mode, "applied"),
             interactive: false,
           },
         ).addTo(group);
       }
     }
   }, [constraints, showAppliedQuestions]);
+
+  useEffect(() => {
+    const group = finalRegionRef.current;
+    if (!group) return;
+    group.clearLayers();
+    if (!showFinalRegion || candidates.length === 0) return;
+    const feature = candidateZoneFeature(candidates);
+    if (!feature) return;
+    L.geoJSON(feature, {
+      interactive: false,
+      style: {
+        color: "#0f766e",
+        weight: 2.2,
+        fillColor: "#0f766e",
+        fillOpacity: 0.18,
+      },
+    }).addTo(group);
+  }, [candidates, showFinalRegion]);
 
   useEffect(() => {
     const map = mapRef.current;

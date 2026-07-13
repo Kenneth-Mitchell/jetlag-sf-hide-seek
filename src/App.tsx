@@ -47,13 +47,14 @@ const DEFAULT_MOBILE_MAP_HEIGHT = 64;
 const MIN_MOBILE_MAP_HEIGHT = 34;
 const MAX_MOBILE_MAP_HEIGHT = 88;
 
-type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
+type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions" | "finalRegion";
 
 const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
   { key: "stations", label: "Station circles" },
   { key: "currentQuestion", label: "Question preview" },
   { key: "appliedQuestions", label: "Asked questions" },
   { key: "answerRegions", label: "Answer regions" },
+  { key: "finalRegion", label: "Final region" },
 ];
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
@@ -164,6 +165,7 @@ export function App() {
     currentQuestion: true,
     appliedQuestions: true,
     answerRegions: true,
+    finalRegion: false,
   });
   const [stationColor, setStationColor] = useState(readSavedStationColor);
   const [mapFocus, setMapFocus] = useState(false);
@@ -174,6 +176,7 @@ export function App() {
   const [shareStatus, setShareStatus] = useState("");
   const [importText, setImportText] = useState("");
   const [showImportPanel, setShowImportPanel] = useState(false);
+  const [sharePanelMode, setSharePanelMode] = useState<"share" | "import">("import");
   const layerControlRef = useRef<HTMLDivElement | null>(null);
   const hasActiveQuestion = questionKind !== "none";
   const appShellStyle = { "--mobile-map-height": `${mobileMapHeight}svh` } as CSSProperties;
@@ -716,30 +719,16 @@ export function App() {
   async function exportState() {
     const encoded = encodeMapState(constraints, selectedPoint);
     const url = `${location.origin}${location.pathname}#state=${encoded}`;
-    const shareData = {
-      title: "SF Hide & Seek map",
-      text: "Current question map",
-      url,
-    };
-
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share(shareData);
-        setShareStatus("Shared map link.");
-        return;
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-    }
 
     try {
       await navigator.clipboard.writeText(url);
       setShareStatus("Map link copied.");
     } catch {
-      setImportText(url);
-      setShowImportPanel(true);
       setShareStatus("Copy was blocked. Link is ready below.");
     }
+    setImportText(url);
+    setSharePanelMode("share");
+    setShowImportPanel(true);
   }
 
   function copyQuestion() {
@@ -903,6 +892,7 @@ export function App() {
           showCurrentQuestion={mapLayers.currentQuestion}
           showAppliedQuestions={mapLayers.appliedQuestions}
           showAnswerRegions={mapLayers.answerRegions}
+          showFinalRegion={mapLayers.finalRegion}
           stationColor={stationColor}
           onSelectPoint={handleMapPointSelect}
           onCurrentPointChange={moveDraftPoint}
@@ -945,7 +935,7 @@ export function App() {
             aria-label="Set current location"
             title="Set current location"
           >
-            <Crosshair size={20} />
+            <Crosshair size={22} />
           </button>
           {showLayerMenu && (
             <div id="map-layer-menu" className="map-layer-menu" role="dialog" aria-label="Map layers">
@@ -964,6 +954,22 @@ export function App() {
                   <span>{label}</span>
                 </button>
               ))}
+              <button
+                type="button"
+                className="map-layer-option"
+                onClick={() =>
+                  setMapLayers({
+                    stations: false,
+                    currentQuestion: false,
+                    appliedQuestions: false,
+                    answerRegions: false,
+                    finalRegion: true,
+                  })
+                }
+              >
+                <span className="map-layer-check" aria-hidden="true" />
+                <span>Final only</span>
+              </button>
               <label className="map-layer-color">
                 <span>Station color</span>
                 <input
@@ -1250,6 +1256,7 @@ export function App() {
                     className="icon-text-button"
                     title="Import map link"
                     onClick={() => {
+                      setSharePanelMode("import");
                       setShowImportPanel((value) => !value);
                       setShareStatus("");
                     }}
@@ -1275,19 +1282,39 @@ export function App() {
               {showImportPanel && (
                 <div className="share-panel">
                   <label>
-                    Import map link
+                    {sharePanelMode === "share" ? "Map link" : "Import map link"}
                     <input
                       type="text"
                       value={importText}
-                      placeholder="Paste a shared map link"
+                      placeholder={sharePanelMode === "share" ? "Generated map link" : "Paste a shared map link"}
                       onChange={(event) => setImportText(event.target.value)}
+                      readOnly={sharePanelMode === "share"}
                     />
                   </label>
                   <div className="button-row">
-                    <button type="button" className="icon-text-button" onClick={() => applyImportedMapState(importText)} disabled={!importText.trim()}>
-                      <ListChecks size={17} />
-                      Load map
-                    </button>
+                    {sharePanelMode === "share" ? (
+                      <button
+                        type="button"
+                        className="icon-text-button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard?.writeText(importText);
+                            setShareStatus("Map link copied.");
+                          } catch {
+                            setShareStatus("Copy was blocked. Link is ready below.");
+                          }
+                        }}
+                        disabled={!importText.trim()}
+                      >
+                        <Share2 size={17} />
+                        Copy link
+                      </button>
+                    ) : (
+                      <button type="button" className="icon-text-button" onClick={() => applyImportedMapState(importText)} disabled={!importText.trim()}>
+                        <ListChecks size={17} />
+                        Load map
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="icon-text-button"

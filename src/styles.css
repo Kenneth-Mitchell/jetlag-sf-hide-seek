@@ -99,6 +99,12 @@ button:disabled {
   color: #101820;
 }
 
+.map-current-location-button {
+  width: 42px;
+  min-width: 42px;
+  min-height: 42px;
+}
+
 .map-layer-button.active,
 .map-layer-button:hover,
 .map-current-location-button:hover {
@@ -995,6 +1001,9 @@ button.answer-chip:hover {
 
   .map-current-location-button {
     display: grid;
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .leaflet-control-zoom {
