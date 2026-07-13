@@ -61,6 +61,7 @@ button:disabled {
   position: relative;
   z-index: 1;
   min-height: 42vh;
+  --map-control-size: 42px;
 }
 
 .leaflet-host {
@@ -88,21 +89,15 @@ button:disabled {
 .map-current-location-button {
   display: grid;
   place-items: center;
-  width: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: var(--map-control-size);
+  min-width: var(--map-control-size);
+  min-height: var(--map-control-size);
   padding: 0;
   border: 1px solid rgb(16 24 32 / 0.22);
   border-radius: 6px;
   background: #ffffff;
   box-shadow: 0 2px 6px rgb(16 24 32 / 0.2);
   color: #101820;
-}
-
-.map-current-location-button {
-  width: 42px;
-  min-width: 42px;
-  min-height: 42px;
 }
 
 .map-layer-button.active,
@@ -1006,9 +1001,9 @@ button.answer-chip:hover {
     z-index: 500;
     display: grid;
     place-items: center;
-    width: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: var(--map-control-size);
+    min-width: var(--map-control-size);
+    min-height: var(--map-control-size);
     padding: 0;
     border: 1px solid rgb(16 24 32 / 0.22);
     border-radius: 6px;
@@ -1026,17 +1021,14 @@ button.answer-chip:hover {
   .map-layer-button,
   .map-current-location-button,
   .map-focus-button {
-    width: 34px;
-    min-width: 34px;
-    min-height: 34px;
+    width: var(--map-control-size);
+    min-width: var(--map-control-size);
+    min-height: var(--map-control-size);
     border-radius: 6px;
   }
 
   .map-current-location-button {
     display: grid;
-    width: 40px;
-    min-width: 40px;
-    min-height: 40px;
   }
 
   .leaflet-control-zoom {
