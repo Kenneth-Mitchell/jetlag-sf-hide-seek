@@ -67,6 +67,18 @@ const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
   { value: "transit-line", label: "Transit line" },
 ];
 
+const ANSWER_TONES: Record<string, "keep" | "exclude" | "neutral"> = {
+  yes: "keep",
+  inside: "keep",
+  closer: "keep",
+  warmer: "keep",
+  no: "exclude",
+  outside: "exclude",
+  farther: "exclude",
+  colder: "exclude",
+  same: "neutral",
+};
+
 function questionLabel(kind: QuestionKind) {
   return QUESTION_KINDS.find((item) => item.value === kind)?.label ?? kind;
 }
@@ -1482,7 +1494,7 @@ function Segmented<T extends string>({
         <button
           key={option}
           type="button"
-          className={value === option ? "active" : ""}
+          className={value === option ? `active tone-${ANSWER_TONES[option] ?? "keep"}` : ""}
           onClick={() => onChange(option)}
         >
           {option}
