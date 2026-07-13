@@ -223,13 +223,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-function stationPopupHtml(station: CandidateStation, status: "possible" | "eliminated"): string {
+function stationPopupHtml(station: CandidateStation): string {
   const [lng, lat] = station.geometry.coordinates;
   const system = station.properties.primary_system
     ? String(station.properties.primary_system)
     : station.properties.sourceSheet;
   const lines = stationLines(station).filter((line) => line !== system);
-  const statusLabel = status === "possible" ? "Possible hiding zone" : "Eliminated hiding zone";
   const rows = [
     system ? `<span>${escapeHtml(system)}</span>` : "",
     lines.length > 0 ? `<span>${escapeHtml(lines.join(", "))}</span>` : "",
@@ -239,10 +238,21 @@ function stationPopupHtml(station: CandidateStation, status: "possible" | "elimi
   return `
     <div class="station-popup">
       <strong>${escapeHtml(station.properties.name)}</strong>
-      <em>${statusLabel}</em>
+      <em>Hiding zone center</em>
       ${rows.map((row) => `<p>${row}</p>`).join("")}
     </div>
   `;
+}
+
+function stationZoneFeature(station: CandidateStation): AreaFeature {
+  const [lng, lat] = station.geometry.coordinates;
+  return turf.circle([lng, lat], snapshot.hideRadiusMiles, { units: "miles", steps: 48 }) as AreaFeature;
+}
+
+function stationZoneIntersectsRegion(station: CandidateStation, region: AreaFeature | undefined): boolean {
+  if (!region) return true;
+  const intersection = turf.intersect(turf.featureCollection([stationZoneFeature(station), region]));
+  return Boolean(intersection);
 }
 
 function toPoint(latlng: L.LatLng): LngLat {
@@ -733,51 +743,44 @@ export function MapView({
     if (!layers) return;
     layers.clearLayers();
     if (!showStations) return;
-    const addStationCenter = (station: CandidateStation, status: "possible" | "eliminated") => {
+    const allowedRegion = askedQuestionRegion(constraints);
+    const stationsById = new Map<string, CandidateStation>();
+    for (const station of [...candidates, ...eliminated]) {
+      stationsById.set(station.properties.id, station);
+    }
+    const visibleStations = [...stationsById.values()].filter((station) => stationZoneIntersectsRegion(station, allowedRegion));
+    const addStationCenter = (station: CandidateStation) => {
       const [lng, lat] = station.geometry.coordinates;
-      const possible = status === "possible";
       L.circleMarker([lat, lng], {
-        radius: possible ? 4 : 3,
+        radius: 4,
         color: "#ffffff",
         weight: 1.5,
-        opacity: possible ? 1 : 0.85,
-        fillColor: possible ? stationColor : "#71717a",
-        fillOpacity: possible ? 0.95 : 0.72,
+        opacity: 1,
+        fillColor: stationColor,
+        fillOpacity: 0.95,
         interactive: true,
         bubblingMouseEvents: false,
       })
-        .bindPopup(stationPopupHtml(station, status), {
+        .bindPopup(stationPopupHtml(station), {
           closeButton: false,
           maxWidth: 240,
         })
         .addTo(layers);
     };
 
-    for (const station of eliminated) {
-      const [lng, lat] = station.geometry.coordinates;
-      L.circle([lat, lng], {
-        radius: milesToMeters(snapshot.hideRadiusMiles),
-        color: "#71717a",
-        weight: 1,
-        fillColor: "#a1a1aa",
-        fillOpacity: 0.06,
-        interactive: false,
-      }).addTo(layers);
-      if (showStationCenters) addStationCenter(station, "eliminated");
-    }
-    for (const station of candidates) {
+    for (const station of visibleStations) {
       const [lng, lat] = station.geometry.coordinates;
       L.circle([lat, lng], {
         radius: milesToMeters(snapshot.hideRadiusMiles),
         color: stationColor,
         weight: 1.5,
         fillColor: stationColor,
-        fillOpacity: candidates.length <= 40 ? 0.24 : 0.13,
+        fillOpacity: visibleStations.length <= 40 ? 0.24 : 0.13,
         interactive: false,
       }).addTo(layers);
-      if (showStationCenters) addStationCenter(station, "possible");
+      if (showStationCenters) addStationCenter(station);
     }
-  }, [candidates, eliminated, showStationCenters, showStations, stationColor]);
+  }, [candidates, constraints, eliminated, showStationCenters, showStations, stationColor]);
 
   return <div ref={elementRef} className="leaflet-host" />;
 }
