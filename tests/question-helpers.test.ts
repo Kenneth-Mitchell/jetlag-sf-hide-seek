@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDraftConstraint } from "../src/lib/draftConstraint";
-import { decodeMapState, encodeMapState } from "../src/lib/mapState";
+import { decodeMapState, encodeMapState, hasMapState } from "../src/lib/mapState";
 import { answerPastedQuestion } from "../src/lib/pastedQuestion";
 import { formatQuestionDraft } from "../src/lib/questionText";
 import { vanNessMarket } from "../src/lib/snapshot";
@@ -86,5 +86,30 @@ describe("question helper modules", () => {
       answer: "inside",
       point: { lat: 37.77, lng: -122.42 },
     });
+  });
+
+  it("imports share links pasted with surrounding text and trailing punctuation", () => {
+    const constraints: Constraint[] = [{
+      id: "test",
+      kind: "radius",
+      label: "Radar / radius",
+      enabled: true,
+      point: vanNessMarket,
+      miles: 0.5,
+      answer: "outside",
+    }];
+    const encoded = encodeMapState(constraints, vanNessMarket);
+    const pasted = `map is here: https://kenneth-mitchell.github.io/jetlag-sf-hide-seek/#state=${encoded}).`;
+
+    expect(hasMapState(pasted)).toBe(true);
+    expect(decodeMapState(pasted).constraints?.[0]).toMatchObject({ kind: "radius", answer: "outside" });
+  });
+
+  it("imports state from html-escaped query links", () => {
+    const encoded = encodeMapState([], vanNessMarket);
+    const pasted = `https://example.test/jetlag-sf-hide-seek/?foo=1&amp;state=${encoded}`;
+
+    expect(hasMapState(pasted)).toBe(true);
+    expect(decodeMapState(pasted).selectedPoint).toEqual(vanNessMarket);
   });
 });

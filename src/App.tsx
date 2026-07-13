@@ -25,7 +25,7 @@ import { buildDraftConstraint } from "./lib/draftConstraint";
 import { nearestSeaLevelWithDistance } from "./lib/elevation";
 import { distanceMiles, lngLatFromFeature, nearestFeature, pointInFeatureCollection } from "./lib/geo";
 import { distanceToLinearCategoryMiles, isLinearCategory } from "./lib/linearCategories";
-import { decodeMapState, encodeMapState } from "./lib/mapState";
+import { decodeMapState, encodeMapState, hasMapState } from "./lib/mapState";
 import { answerPastedQuestion } from "./lib/pastedQuestion";
 import { formatAppliedQuestion, formatQuestionDraft } from "./lib/questionText";
 import { allPointCategories, getCategoryFeatures, snapshot, validStations, vanNessMarket } from "./lib/snapshot";
@@ -835,9 +835,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const state = new URLSearchParams(location.hash.replace(/^#/, "")).get("state");
-    if (!state) return;
-    applyImportedMapState(state);
+    if (!hasMapState(location.href)) return;
+    applyImportedMapState(location.href);
     history.replaceState(null, "", location.pathname);
   }, []);
 
