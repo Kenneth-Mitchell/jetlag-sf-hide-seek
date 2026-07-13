@@ -169,6 +169,27 @@ function constraintAnswerRegionOverlay(constraint: Constraint): ConstraintOverla
     : [];
 }
 
+function constraintEliminatedRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
+  const feature = excludedQuestionRegion([constraint]);
+  return feature
+    ? [{
+        kind: "polygon" as const,
+        feature,
+        mode: "exclude" as const,
+        color: constraint.color,
+        fillOpacity: 0.2,
+        weight: 1.4,
+      }]
+    : [];
+}
+
+function constraintPreviewRegionOverlay(constraint: Constraint): ConstraintOverlay[] {
+  if (constraint.kind === "matching" || constraint.kind === "district" || constraint.kind === "transit-line") {
+    return constraintEliminatedRegionOverlay(constraint);
+  }
+  return constraintAnswerRegionOverlay(constraint);
+}
+
 function handleIcon(label: string, color: string): L.DivIcon {
   const content = label ? `<span>${label}</span>` : "";
   const dotClass = label ? "" : " drag-handle-dot";
@@ -506,7 +527,7 @@ export function MapView({
         : voronoiPreview.length > 0
           ? voronoiPreview
           : showCurrentQuestion
-            ? constraintAnswerRegionOverlay(previewConstraint)
+            ? constraintPreviewRegionOverlay(previewConstraint)
             : [];
     for (const overlay of overlays) {
       const mode = overlay.mode === "reference" ? "reference" : overlay.mode;
