@@ -11,6 +11,8 @@ type ElevationSample = PointFeature & {
 const elevationSamples = (snapshot.layers.elevationSamples?.features ?? []) as ElevationSample[];
 const cache = new Map<string, number | undefined>();
 
+export const SEA_LEVEL_ELEVATION_TOLERANCE_FEET = 50;
+
 function pointCacheKey(point: LngLat): string {
   return `${point.lat.toFixed(5)},${point.lng.toFixed(5)}`;
 }

@@ -324,6 +324,29 @@ describe("constraint engine", () => {
     expect(seaLevelAtTwinPeaks?.feet).toBeGreaterThan(seaLevelAtMarket?.feet ?? 0);
   });
 
+  it("filters sea-level measuring questions by elevation instead of horizontal miles", () => {
+    const twinPeaks = { lat: 37.7544, lng: -122.4477 };
+    const lowReference = {
+      id: "sea-level-low",
+      kind: "measuring" as const,
+      label: "Measuring distance",
+      enabled: true,
+      color: "#7c3aed",
+      point: vanNessMarket,
+      category: "seaLevel" as const,
+      answer: "closer" as const,
+    };
+    const highReference = {
+      ...lowReference,
+      id: "sea-level-high",
+      point: twinPeaks,
+      answer: "farther" as const,
+    };
+
+    expect(applyConstraints([lowReference]).length).toBeLessThan(validStations.length);
+    expect(applyConstraints([highReference]).length).toBeLessThan(25);
+  });
+
   it("does not eliminate sampled truthful hider stations for matching and measuring answers", () => {
     const fixtures = validStations.filter((_, index) => index % 17 === 0).slice(0, 10);
     for (const [index, fixture] of fixtures.entries()) {

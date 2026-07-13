@@ -1,6 +1,6 @@
 import { CATEGORY_LABELS } from "../data/rules";
 import { distanceToArealCategoryMiles, isArealCategory, nearestArealCategoryWithDistance } from "./arealCategories";
-import { nearestSeaLevelWithDistance } from "./elevation";
+import { nearestSeaLevelWithDistance, SEA_LEVEL_ELEVATION_TOLERANCE_FEET } from "./elevation";
 import { distanceMiles, distanceToFeatureMiles, lngLatFromFeature, nearestFeature, nearestFeatureWithDistance, nearestOtherDistance, pointInFeatureCollection, sampleStationZone } from "./geo";
 import { distanceToLinearCategoryMiles, isLinearCategory, nearestLinearCategoryWithDistance } from "./linearCategories";
 import { getCategoryFeatures, snapshot, validStations } from "./snapshot";
@@ -52,6 +52,15 @@ function measuringDistance(point: LngLat, category: Extract<Constraint, { kind: 
   return nearestFeatureWithDistance(point, getCategoryFeatures(category))?.miles;
 }
 
+function seaLevelMeasuringSurvives(station: CandidateStation, constraint: Extract<Constraint, { kind: "measuring" }>): boolean {
+  const referenceFeet = nearestSeaLevelWithDistance(constraint.point)?.feet;
+  const stationFeet = nearestSeaLevelWithDistance(stationCenter(station))?.feet;
+  if (referenceFeet === undefined || stationFeet === undefined) return true;
+  return constraint.answer === "closer"
+    ? stationFeet <= referenceFeet + SEA_LEVEL_ELEVATION_TOLERANCE_FEET
+    : stationFeet >= referenceFeet - SEA_LEVEL_ELEVATION_TOLERANCE_FEET;
+}
+
 export { transitLineStopsInStationZone } from "./transit";
 
 export function stationSurvivesConstraint(station: CandidateStation, constraint: Constraint): boolean {
@@ -80,6 +89,7 @@ export function stationSurvivesConstraint(station: CandidateStation, constraint:
         : differentNearestPossible(station, target, features);
     }
     case "measuring": {
+      if (constraint.category === "seaLevel") return seaLevelMeasuringSurvives(station, constraint);
       const referenceMiles = measuringDistance(constraint.point, constraint.category);
       const stationMiles = measuringDistance(center, constraint.category);
       if (referenceMiles === undefined || stationMiles === undefined) return true;
@@ -130,6 +140,12 @@ export function pointSatisfiesConstraint(point: LngLat, constraint: Constraint):
       return constraint.answer === "yes" ? same : !same;
     }
     case "measuring": {
+      if (constraint.category === "seaLevel") {
+        const referenceFeet = nearestSeaLevelWithDistance(constraint.point)?.feet;
+        const hiderFeet = nearestSeaLevelWithDistance(point)?.feet;
+        if (referenceFeet === undefined || hiderFeet === undefined) return true;
+        return constraint.answer === "closer" ? hiderFeet <= referenceFeet : hiderFeet >= referenceFeet;
+      }
       const referenceMiles = measuringDistance(constraint.point, constraint.category);
       const hiderMiles = measuringDistance(point, constraint.category);
       if (referenceMiles === undefined || hiderMiles === undefined) return true;
