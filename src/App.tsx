@@ -837,8 +837,6 @@ export function App() {
     <main className={`app-shell${mapFocus ? " map-focus" : ""}${isSheetDragging ? " sheet-dragging" : ""}`} style={appShellStyle}>
       <section className="map-pane" aria-label="Map">
         <MapView
-          candidates={candidates}
-          eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
           constraints={constraints}
           currentPoint={showSelectedPointMarker ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}

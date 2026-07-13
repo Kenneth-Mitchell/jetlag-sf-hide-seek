@@ -1,14 +1,12 @@
 import L from "leaflet";
 import * as turf from "@turf/turf";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { buildConstraintOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
 import { distanceMiles, milesToMeters, stationLines } from "../lib/geo";
-import { snapshot, vanNessMarket } from "../lib/snapshot";
+import { snapshot, validStations, vanNessMarket } from "../lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../lib/types";
 
 type MapViewProps = {
-  candidates: CandidateStation[];
-  eliminated: CandidateStation[];
   constraints: Constraint[];
   currentPoint?: LngLat;
   draftConstraint?: Constraint;
@@ -32,6 +30,7 @@ type ThermometerDrag = {
 };
 
 const STATION_CENTER_MIN_ZOOM = 14;
+const STATION_ZONE_STEPS = 32;
 
 function overlayStyle(mode: ConstraintOverlay["mode"], color = "#7c3aed"): L.PathOptions {
   if (mode === "reference") {
@@ -244,15 +243,20 @@ function stationPopupHtml(station: CandidateStation): string {
   `;
 }
 
+const stationZoneFeatureCache = new WeakMap<CandidateStation, AreaFeature>();
+
 function stationZoneFeature(station: CandidateStation): AreaFeature {
+  const cached = stationZoneFeatureCache.get(station);
+  if (cached) return cached;
   const [lng, lat] = station.geometry.coordinates;
-  return turf.circle([lng, lat], snapshot.hideRadiusMiles, { units: "miles", steps: 48 }) as AreaFeature;
+  const feature = turf.circle([lng, lat], snapshot.hideRadiusMiles, { units: "miles", steps: STATION_ZONE_STEPS }) as AreaFeature;
+  stationZoneFeatureCache.set(station, feature);
+  return feature;
 }
 
 function stationZoneIntersectsRegion(station: CandidateStation, region: AreaFeature | undefined): boolean {
   if (!region) return true;
-  const intersection = turf.intersect(turf.featureCollection([stationZoneFeature(station), region]));
-  return Boolean(intersection);
+  return !turf.booleanDisjoint(stationZoneFeature(station), region);
 }
 
 function toPoint(latlng: L.LatLng): LngLat {
@@ -394,8 +398,6 @@ function attachManualDrag(
 }
 
 export function MapView({
-  candidates,
-  eliminated,
   constraints,
   currentPoint,
   draftConstraint,
@@ -428,6 +430,10 @@ export function MapView({
   const [draftDragPoint, setDraftDragPoint] = useState<LngLat | null>(null);
   const [thermometerDrag, setThermometerDrag] = useState<ThermometerDrag | null>(null);
   const [showStationCenters, setShowStationCenters] = useState(false);
+  const visibleStations = useMemo(() => {
+    const allowedRegion = askedQuestionRegion(constraints);
+    return validStations.filter((station) => stationZoneIntersectsRegion(station, allowedRegion));
+  }, [constraints]);
 
   useEffect(() => {
     onSelectPointRef.current = onSelectPoint;
@@ -743,12 +749,6 @@ export function MapView({
     if (!layers) return;
     layers.clearLayers();
     if (!showStations) return;
-    const allowedRegion = askedQuestionRegion(constraints);
-    const stationsById = new Map<string, CandidateStation>();
-    for (const station of [...candidates, ...eliminated]) {
-      stationsById.set(station.properties.id, station);
-    }
-    const visibleStations = [...stationsById.values()].filter((station) => stationZoneIntersectsRegion(station, allowedRegion));
     const addStationCenter = (station: CandidateStation) => {
       const [lng, lat] = station.geometry.coordinates;
       L.circleMarker([lat, lng], {
@@ -780,7 +780,7 @@ export function MapView({
       }).addTo(layers);
       if (showStationCenters) addStationCenter(station);
     }
-  }, [candidates, constraints, eliminated, showStationCenters, showStations, stationColor]);
+  }, [showStationCenters, showStations, stationColor, visibleStations]);
 
   return <div ref={elementRef} className="leaflet-host" />;
 }
