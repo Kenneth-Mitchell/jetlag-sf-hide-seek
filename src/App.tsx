@@ -47,14 +47,13 @@ const DEFAULT_MOBILE_MAP_HEIGHT = 64;
 const MIN_MOBILE_MAP_HEIGHT = 34;
 const MAX_MOBILE_MAP_HEIGHT = 88;
 
-type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions" | "finalRegion";
+type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions" | "answerRegions";
 
 const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
   { key: "stations", label: "Station circles" },
   { key: "currentQuestion", label: "Question preview" },
-  { key: "appliedQuestions", label: "Asked questions" },
+  { key: "appliedQuestions", label: "Eliminated area" },
   { key: "answerRegions", label: "Answer regions" },
-  { key: "finalRegion", label: "Final region" },
 ];
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
@@ -165,7 +164,6 @@ export function App() {
     currentQuestion: true,
     appliedQuestions: true,
     answerRegions: true,
-    finalRegion: false,
   });
   const [stationColor, setStationColor] = useState(readSavedStationColor);
   const [mapFocus, setMapFocus] = useState(false);
@@ -404,13 +402,6 @@ export function App() {
           : constraints
         : constraints,
     [constraints, liveDraftConstraint, editingConstraint],
-  );
-  const appliedMapConstraints = useMemo(
-    () =>
-      editingConstraint
-        ? constraints.filter((constraint) => constraint.id !== editingConstraint.id)
-        : constraints,
-    [constraints, editingConstraint],
   );
   const answerPreviewOverlays = useMemo(() => {
     if (!liveDraftConstraint) return [];
@@ -884,7 +875,6 @@ export function App() {
         <MapView
           candidates={candidates}
           eliminated={validStations.filter((station) => !candidates.some((candidate) => candidate.properties.id === station.properties.id))}
-          constraints={appliedMapConstraints}
           currentPoint={showSelectedPointMarker ? selectedPoint : undefined}
           draftConstraint={mode === "seeker" ? draftConstraint : undefined}
           answerPreviewOverlays={mode === "seeker" ? answerPreviewOverlays : []}
@@ -892,7 +882,6 @@ export function App() {
           showCurrentQuestion={mapLayers.currentQuestion}
           showAppliedQuestions={mapLayers.appliedQuestions}
           showAnswerRegions={mapLayers.answerRegions}
-          showFinalRegion={mapLayers.finalRegion}
           stationColor={stationColor}
           onSelectPoint={handleMapPointSelect}
           onCurrentPointChange={moveDraftPoint}
@@ -954,22 +943,6 @@ export function App() {
                   <span>{label}</span>
                 </button>
               ))}
-              <button
-                type="button"
-                className="map-layer-option"
-                onClick={() =>
-                  setMapLayers({
-                    stations: false,
-                    currentQuestion: false,
-                    appliedQuestions: false,
-                    answerRegions: false,
-                    finalRegion: true,
-                  })
-                }
-              >
-                <span className="map-layer-check" aria-hidden="true" />
-                <span>Final only</span>
-              </button>
               <label className="map-layer-color">
                 <span>Station color</span>
                 <input

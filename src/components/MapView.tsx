@@ -9,7 +9,6 @@ import type { CandidateStation, Constraint, LngLat } from "../lib/types";
 type MapViewProps = {
   candidates: CandidateStation[];
   eliminated: CandidateStation[];
-  constraints: Constraint[];
   currentPoint?: LngLat;
   draftConstraint?: Constraint;
   answerPreviewOverlays?: ConstraintOverlay[];
@@ -17,7 +16,6 @@ type MapViewProps = {
   showCurrentQuestion: boolean;
   showAppliedQuestions: boolean;
   showAnswerRegions: boolean;
-  showFinalRegion: boolean;
   stationColor: string;
   onSelectPoint: (point: LngLat) => void;
   onCurrentPointChange?: (point: LngLat) => void;
@@ -60,21 +58,8 @@ function overlayStyle(mode: ConstraintOverlay["mode"], color = "#7c3aed"): L.Pat
   };
 }
 
-function overlayPathOptions(
-  overlay: ConstraintOverlay,
-  mode: ConstraintOverlay["mode"] = overlay.mode,
-  context: "default" | "applied" = "default",
-): L.PathOptions {
+function overlayPathOptions(overlay: ConstraintOverlay, mode: ConstraintOverlay["mode"] = overlay.mode): L.PathOptions {
   const style = overlayStyle(mode, overlay.color);
-  if (context === "applied" && mode === "keep") {
-    return {
-      ...style,
-      color: "#344543",
-      dashArray: overlay.dashArray ?? "5 6",
-      fillOpacity: 0,
-      weight: overlay.weight ?? 1.8,
-    };
-  }
   return {
     ...style,
     dashArray: overlay.dashArray ?? style.dashArray,
@@ -92,6 +77,29 @@ function candidateZoneFeature(candidates: CandidateStation[]): GeoJSON.Feature<G
   const merged = turf.union(turf.featureCollection(zones));
   return merged && (merged.geometry.type === "Polygon" || merged.geometry.type === "MultiPolygon")
     ? (merged as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>)
+    : undefined;
+}
+
+let cachedPlayableAreaFeature: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined;
+
+function playableAreaFeature(): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
+  if (cachedPlayableAreaFeature) return cachedPlayableAreaFeature;
+  const features = snapshot.geometries.playableArea.features as Array<GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>>;
+  const merged = turf.union(turf.featureCollection(features));
+  if (merged && (merged.geometry.type === "Polygon" || merged.geometry.type === "MultiPolygon")) {
+    cachedPlayableAreaFeature = merged as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>;
+  }
+  return cachedPlayableAreaFeature;
+}
+
+function excludedZoneFeature(candidates: CandidateStation[]): GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | undefined {
+  const playable = playableAreaFeature();
+  if (!playable) return undefined;
+  const remaining = candidateZoneFeature(candidates);
+  if (!remaining) return playable;
+  const excluded = turf.difference(turf.featureCollection([playable, remaining]));
+  return excluded && (excluded.geometry.type === "Polygon" || excluded.geometry.type === "MultiPolygon")
+    ? (excluded as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>)
     : undefined;
 }
 
@@ -277,7 +285,6 @@ function attachManualDrag(
 export function MapView({
   candidates,
   eliminated,
-  constraints,
   currentPoint,
   draftConstraint,
   answerPreviewOverlays = [],
@@ -285,7 +292,6 @@ export function MapView({
   showCurrentQuestion,
   showAppliedQuestions,
   showAnswerRegions,
-  showFinalRegion,
   stationColor,
   onSelectPoint,
   onCurrentPointChange,
@@ -300,7 +306,6 @@ export function MapView({
   const mapRef = useRef<L.Map | null>(null);
   const appliedConstraintRef = useRef<L.LayerGroup | null>(null);
   const draftConstraintRef = useRef<L.LayerGroup | null>(null);
-  const finalRegionRef = useRef<L.LayerGroup | null>(null);
   const layersRef = useRef<L.LayerGroup | null>(null);
   const panBoundsRef = useRef<L.LatLngBounds | null>(null);
   const draftPointMarkerRef = useRef<L.Marker | null>(null);
@@ -348,7 +353,6 @@ export function MapView({
     map.setMaxBounds(panBounds);
     clampMapMinZoom(map, viewBounds);
     map.on("resize", () => clampMapMinZoom(map, viewBounds));
-    finalRegionRef.current = L.layerGroup().addTo(map);
     layersRef.current = L.layerGroup().addTo(map);
     appliedConstraintRef.current = L.layerGroup().addTo(map);
     draftConstraintRef.current = L.layerGroup().addTo(map);
@@ -372,50 +376,18 @@ export function MapView({
     if (!group) return;
     group.clearLayers();
     if (!showAppliedQuestions) return;
-    for (const overlay of buildConstraintOverlays(constraints)) {
-      if (overlay.kind === "circle") {
-        L.circle([overlay.center.lat, overlay.center.lng], {
-          ...overlayPathOptions(overlay, overlay.mode, "applied"),
-          radius: milesToMeters(overlay.radiusMiles),
-          interactive: false,
-        }).addTo(group);
-      } else if (overlay.kind === "polygon") {
-        L.geoJSON(overlay.feature, {
-          interactive: false,
-          style: {
-            ...overlayPathOptions(overlay, overlay.mode, "applied"),
-            stroke: overlay.stroke ?? true,
-          },
-        }).addTo(group);
-      } else {
-        L.polyline(
-          overlay.coordinates.map((coordinate) => [coordinate.lat, coordinate.lng]),
-          {
-            ...overlayPathOptions(overlay, overlay.mode, "applied"),
-            interactive: false,
-          },
-        ).addTo(group);
-      }
-    }
-  }, [constraints, showAppliedQuestions]);
-
-  useEffect(() => {
-    const group = finalRegionRef.current;
-    if (!group) return;
-    group.clearLayers();
-    if (!showFinalRegion || candidates.length === 0) return;
-    const feature = candidateZoneFeature(candidates);
+    const feature = excludedZoneFeature(candidates);
     if (!feature) return;
     L.geoJSON(feature, {
       interactive: false,
       style: {
-        color: "#0f766e",
-        weight: 2.2,
-        fillColor: "#0f766e",
-        fillOpacity: 0.18,
+        color: "#991b1b",
+        weight: 1,
+        fillColor: "#991b1b",
+        fillOpacity: 0.2,
       },
     }).addTo(group);
-  }, [candidates, showFinalRegion]);
+  }, [candidates, showAppliedQuestions]);
 
   useEffect(() => {
     const map = mapRef.current;
