@@ -50,8 +50,8 @@ type MapLayerKey = "stations" | "currentQuestion" | "appliedQuestions";
 
 const MAP_LAYER_LABELS: Array<{ key: MapLayerKey; label: string }> = [
   { key: "stations", label: "Station circles" },
-  { key: "currentQuestion", label: "Question preview" },
-  { key: "appliedQuestions", label: "Eliminated area" },
+  { key: "currentQuestion", label: "Current elimination" },
+  { key: "appliedQuestions", label: "Stack elimination" },
 ];
 
 const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
@@ -64,18 +64,6 @@ const QUESTION_KINDS: Array<{ value: QuestionKind; label: string }> = [
   { value: "district", label: "Supervisorial district" },
   { value: "transit-line", label: "Transit line" },
 ];
-
-const ANSWER_TONES: Record<string, "keep" | "exclude" | "neutral"> = {
-  yes: "keep",
-  inside: "keep",
-  closer: "keep",
-  warmer: "keep",
-  no: "exclude",
-  outside: "exclude",
-  farther: "exclude",
-  colder: "exclude",
-  same: "neutral",
-};
 
 function questionLabel(kind: QuestionKind) {
   return QUESTION_KINDS.find((item) => item.value === kind)?.label ?? kind;
@@ -1456,7 +1444,7 @@ function Segmented<T extends string>({
         <button
           key={option}
           type="button"
-          className={value === option ? `active tone-${ANSWER_TONES[option] ?? "keep"}` : ""}
+          className={value === option ? "active" : ""}
           onClick={() => onChange(option)}
         >
           {option}

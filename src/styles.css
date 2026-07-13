@@ -330,16 +330,6 @@ h2 {
   color: white;
 }
 
-.segmented .active.tone-exclude {
-  border-color: #b91c1c;
-  background: #b91c1c;
-}
-
-.segmented .active.tone-neutral {
-  border-color: #52615e;
-  background: #52615e;
-}
-
 .point-strip {
   display: flex;
   align-items: center;

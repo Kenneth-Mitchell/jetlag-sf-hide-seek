@@ -160,7 +160,7 @@ function constraintEliminatedRegionOverlay(constraint: Constraint): ConstraintOv
         kind: "polygon" as const,
         feature,
         mode: "exclude" as const,
-        color: constraint.color,
+        color: "#991b1b",
         fillOpacity: 0.2,
         weight: 1.4,
       }]
