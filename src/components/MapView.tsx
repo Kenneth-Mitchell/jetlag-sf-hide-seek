@@ -31,6 +31,8 @@ type ThermometerDrag = {
   point: LngLat;
 };
 
+const STATION_CENTER_MIN_ZOOM = 14;
+
 function overlayStyle(mode: ConstraintOverlay["mode"], color = "#7c3aed"): L.PathOptions {
   if (mode === "reference") {
     return {
@@ -415,6 +417,7 @@ export function MapView({
   const onSelectPointRef = useRef(onSelectPoint);
   const [draftDragPoint, setDraftDragPoint] = useState<LngLat | null>(null);
   const [thermometerDrag, setThermometerDrag] = useState<ThermometerDrag | null>(null);
+  const [showStationCenters, setShowStationCenters] = useState(false);
 
   useEffect(() => {
     onSelectPointRef.current = onSelectPoint;
@@ -442,6 +445,9 @@ export function MapView({
     map.fitBounds(viewBounds, { animate: false, padding: [12, 12] });
     map.setMaxBounds(panBounds);
     clampMapMinZoom(map, viewBounds);
+    const updateStationCenterVisibility = () => setShowStationCenters(map.getZoom() >= STATION_CENTER_MIN_ZOOM);
+    updateStationCenterVisibility();
+    map.on("zoomend", updateStationCenterVisibility);
     map.on("resize", () => clampMapMinZoom(map, viewBounds));
     layersRef.current = L.layerGroup().addTo(map);
     appliedConstraintRef.current = L.layerGroup().addTo(map);
@@ -757,7 +763,7 @@ export function MapView({
         fillOpacity: 0.06,
         interactive: false,
       }).addTo(layers);
-      addStationCenter(station, "eliminated");
+      if (showStationCenters) addStationCenter(station, "eliminated");
     }
     for (const station of candidates) {
       const [lng, lat] = station.geometry.coordinates;
@@ -769,9 +775,9 @@ export function MapView({
         fillOpacity: candidates.length <= 40 ? 0.24 : 0.13,
         interactive: false,
       }).addTo(layers);
-      addStationCenter(station, "possible");
+      if (showStationCenters) addStationCenter(station, "possible");
     }
-  }, [candidates, eliminated, showStations, stationColor]);
+  }, [candidates, eliminated, showStationCenters, showStations, stationColor]);
 
   return <div ref={elementRef} className="leaflet-host" />;
 }
