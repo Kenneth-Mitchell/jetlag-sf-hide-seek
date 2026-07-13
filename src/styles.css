@@ -269,6 +269,39 @@ button:disabled {
   background: #ffffff;
 }
 
+.station-popup {
+  min-width: 150px;
+}
+
+.station-popup strong,
+.station-popup em,
+.station-popup p {
+  display: block;
+}
+
+.station-popup strong {
+  margin-bottom: 2px;
+  color: #101820;
+  font-size: 0.9rem;
+  line-height: 1.15;
+}
+
+.station-popup em {
+  margin-bottom: 6px;
+  color: #5d6b67;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.station-popup p {
+  margin: 2px 0 0;
+  color: #2f3d3a;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
 .control-pane {
   position: relative;
   z-index: 2;

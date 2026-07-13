@@ -2,7 +2,7 @@ import L from "leaflet";
 import * as turf from "@turf/turf";
 import { useEffect, useRef, useState } from "react";
 import { buildConstraintOverlays, type ConstraintOverlay } from "../lib/constraintOverlays";
-import { distanceMiles, milesToMeters } from "../lib/geo";
+import { distanceMiles, milesToMeters, stationLines } from "../lib/geo";
 import { snapshot, vanNessMarket } from "../lib/snapshot";
 import type { CandidateStation, Constraint, LngLat } from "../lib/types";
 
@@ -210,6 +210,37 @@ function midpoint(a: LngLat, b: LngLat): LngLat {
 function thermometerDistanceLabel(a: LngLat, b: LngLat): string {
   const miles = distanceMiles(a, b);
   return `${miles.toFixed(2)} mi`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function stationPopupHtml(station: CandidateStation, status: "possible" | "eliminated"): string {
+  const [lng, lat] = station.geometry.coordinates;
+  const system = station.properties.primary_system
+    ? String(station.properties.primary_system)
+    : station.properties.sourceSheet;
+  const lines = stationLines(station).filter((line) => line !== system);
+  const statusLabel = status === "possible" ? "Possible hiding zone" : "Eliminated hiding zone";
+  const rows = [
+    system ? `<span>${escapeHtml(system)}</span>` : "",
+    lines.length > 0 ? `<span>${escapeHtml(lines.join(", "))}</span>` : "",
+    `<span>${lat.toFixed(5)}, ${lng.toFixed(5)}</span>`,
+  ].filter(Boolean);
+
+  return `
+    <div class="station-popup">
+      <strong>${escapeHtml(station.properties.name)}</strong>
+      <em>${statusLabel}</em>
+      ${rows.map((row) => `<p>${row}</p>`).join("")}
+    </div>
+  `;
 }
 
 function toPoint(latlng: L.LatLng): LngLat {
@@ -696,6 +727,26 @@ export function MapView({
     if (!layers) return;
     layers.clearLayers();
     if (!showStations) return;
+    const addStationCenter = (station: CandidateStation, status: "possible" | "eliminated") => {
+      const [lng, lat] = station.geometry.coordinates;
+      const possible = status === "possible";
+      L.circleMarker([lat, lng], {
+        radius: possible ? 4 : 3,
+        color: "#ffffff",
+        weight: 1.5,
+        opacity: possible ? 1 : 0.85,
+        fillColor: possible ? stationColor : "#71717a",
+        fillOpacity: possible ? 0.95 : 0.72,
+        interactive: true,
+        bubblingMouseEvents: false,
+      })
+        .bindPopup(stationPopupHtml(station, status), {
+          closeButton: false,
+          maxWidth: 240,
+        })
+        .addTo(layers);
+    };
+
     for (const station of eliminated) {
       const [lng, lat] = station.geometry.coordinates;
       L.circle([lat, lng], {
@@ -706,6 +757,7 @@ export function MapView({
         fillOpacity: 0.06,
         interactive: false,
       }).addTo(layers);
+      addStationCenter(station, "eliminated");
     }
     for (const station of candidates) {
       const [lng, lat] = station.geometry.coordinates;
@@ -717,6 +769,7 @@ export function MapView({
         fillOpacity: candidates.length <= 40 ? 0.24 : 0.13,
         interactive: false,
       }).addTo(layers);
+      addStationCenter(station, "possible");
     }
   }, [candidates, eliminated, showStations, stationColor]);
 
